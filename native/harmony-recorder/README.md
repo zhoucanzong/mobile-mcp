@@ -23,7 +23,7 @@ cmake -S native/harmony-recorder -B /tmp/mobile-mcp-recorder-device \
 cmake --build /tmp/mobile-mcp-recorder-device
 ```
 
-目标链接 `native_avscreen_capture`。实际 SDK 交叉编译尚未执行。已验证主机状态测试及公开 AVScreenCapture 头文件的语法兼容；语法检查中未使用的外部缓冲区/窗口指针类型采用前向声明，不等于设备链接验证。
+目标链接 `native_avscreen_capture`。已用 OpenHarmony 6.1 LTS 的 Native SDK 6.1.0.35（API 23，macOS arm64 工具链）完成 arm64-v8a 交叉编译与链接，产物为 AArch64 ELF，动态依赖 libnative_avscreen_capture.so 和 libc.so。本地构建产物保存在 build/arm64-v8a/mobile-mcp-recorder，构建元数据位于同目录 build-info.json；这些生成文件不提交 Git。此结果不证明商业手机允许该执行身份或已经完成录屏。详细证据见[第一阶段验证记录](../../docs/harmonyos-phase1-verification.md)。
 
 ## 执行协议
 

@@ -1,5 +1,5 @@
 #include "session.h"
-#include <native_avscreen_capture.h>
+#include <multimedia/player_framework/native_avscreen_capture.h>
 #include <charconv>
 #include <csignal>
 #include <fcntl.h>

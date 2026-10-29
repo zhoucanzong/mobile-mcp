@@ -538,7 +538,7 @@ Gmail to contacts "team@example.com".
 
 | 変数 | 説明 | 例 |
 |---|---|---|
-| `HARMONY_RECORDER_PATH` | SDK でビルドした HarmonyOS 録画ヘルパーの絶対パス。SDK/実機検証は未完了です。 | `/path/to/mobile-mcp-recorder` |
+| `HARMONY_RECORDER_PATH` | SDK でビルドした HarmonyOS 録画ヘルパーの絶対パス。API 23 SDK でのクロスリンク済み。実機検証は未完了です。 | `/path/to/mobile-mcp-recorder` |
 | `HARMONY_PASTEBOARD_COMMAND` | デバイス側クリップボード実行ファイルまたはコマンド名。システムツールと読み取り権限が必要です。 | `/system/bin/cli_tool/executable/ohos-pasteboard` |
 | `HARMONY_LOCATION_COMMAND` | システム認可されたデバイス側の模擬位置情報コンポーネント。プラットフォームビルドと実機検証は未完了です。 | `/system/bin/mobile-mcp-location` |
 | `HDC_PATH` | HarmonyOS / OpenHarmony 用 HDC 実行ファイルの絶対パス。未設定の場合は PATH を使用します。 | `/path/to/hdc` |

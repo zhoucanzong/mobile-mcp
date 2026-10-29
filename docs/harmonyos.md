@@ -93,7 +93,7 @@ npm run build
 | `mobile_get_device_logs` | 已实现：HiLog 缓冲区及实时流，NDJSON，筛选及 30 秒固定期限 |
 | `mobile_set_location` | 原生组件与 MCP 持续会话已接入、模拟验证通过；完整平台链接及系统授权仍待完成 |
 | `mobile_fold_device` | 已实现：支持设备上的 named posture 状态模拟并核对返回值；不支持任意铰链角度，非折叠设备不能提供该能力 |
-| `mobile_start_screen_recording` / `mobile_stop_screen_recording` | 原生组件及 MCP 协议已实现、模拟验证通过；需 HARMONY_RECORDER_PATH，SDK 链接和真机授权仍待验证 |
+| `mobile_start_screen_recording` / `mobile_stop_screen_recording` | 原生组件及 MCP 协议已实现、模拟验证通过；需 HARMONY_RECORDER_PATH；API 23 SDK 的 arm64 交叉链接已通过，真机授权待验证 |
 | `mobile_list_crashes` / `mobile_get_crash` | 已实现：系统故障日志目录中的 C++、JS、Rust、仓颉报告；要求设备授权读取目录 |
 | `mobile_login_to_cloud_provider` / `mobile_list_remote_devices` / `mobile_allocate_remote_device` / `mobile_release_remote_device` | 保留原云提供商接口，不提供鸿蒙云设备 |
 
@@ -153,7 +153,7 @@ npm run build
 
 ## 录屏适配进度
 
-[设备端原生组件](../native/harmony-recorder/README.md)与 MCP 录屏工具已接通，包含组件部署、系统 STARTED 状态确认、限时/手动停止、跨 HTTP 请求会话保留、HDC 文件回收和失败处理。原生状态模拟测试与主机协议测试已通过；设备端二进制的 SDK 链接及商业设备授权验证仍未完成。
+[设备端原生组件](../native/harmony-recorder/README.md)与 MCP 录屏工具已接通，包含组件部署、系统 STARTED 状态确认、限时/手动停止、跨 HTTP 请求会话保留、HDC 文件回收和失败处理。原生状态模拟测试与主机协议测试已通过；录屏组件已通过 API 23 SDK 的 arm64 交叉链接；商业设备授权验证仍未完成。
 
 将用鸿蒙 Native SDK 构建的组件绝对路径设为 `HARMONY_RECORDER_PATH`。开始录屏时上传独立的会话组件，使用新建的设备端 MP4 路径；原生组件只采集视频，不采集音频。`timeLimit` 在鸿蒙上为 1–86400 的整数秒，省略则直到手动或系统停止。授权/启动等待有 65 秒期限，停止收尾等待为 15 秒。系统确认开始前，工具不会报告成功。
 

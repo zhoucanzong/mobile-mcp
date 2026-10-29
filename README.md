@@ -549,7 +549,7 @@ Gmail to contacts "team@example.com".
 
 | Variable | Description | Example |
 |---|---|---|
-| `HARMONY_RECORDER_PATH` | Absolute path to the SDK-built native HarmonyOS recorder; required for recording. SDK/device validation is pending. | `/path/to/mobile-mcp-recorder` |
+| `HARMONY_RECORDER_PATH` | Absolute path to the SDK-built native HarmonyOS recorder; required for recording. API 23 SDK cross-linking passed; device validation is pending. | `/path/to/mobile-mcp-recorder` |
 | `HARMONY_PASTEBOARD_COMMAND` | Device-side clipboard executable path or command name; requires the system tool and read permission. | `/system/bin/cli_tool/executable/ohos-pasteboard` |
 | `HARMONY_LOCATION_COMMAND` | Device-side system-authorized mock-location component. Full platform build and device validation are pending. | `/system/bin/mobile-mcp-location` |
 | `HDC_PATH` | Absolute path to the HDC executable for HarmonyOS / OpenHarmony; otherwise uses PATH. | `/path/to/hdc` |

@@ -540,7 +540,7 @@ Gmail to contacts "team@example.com".
 
 | 变量 | 说明 | 示例 |
 |---|---|---|
-| `HARMONY_RECORDER_PATH` | SDK 构建的鸿蒙原生录屏组件绝对路径；录屏时必需，SDK/设备验证待完成。 | `/path/to/mobile-mcp-recorder` |
+| `HARMONY_RECORDER_PATH` | SDK 构建的鸿蒙原生录屏组件绝对路径；录屏时必需，API 23 SDK 交叉链接已通过，手机验证待完成。 | `/path/to/mobile-mcp-recorder` |
 | `HARMONY_PASTEBOARD_COMMAND` | 设备侧剪贴板工具路径或命令名；要求系统提供工具并允许读取。 | `/system/bin/cli_tool/executable/ohos-pasteboard` |
 | `HARMONY_LOCATION_COMMAND` | 设备侧已获系统授权的模拟定位组件；完整平台构建和手机验证待完成。 | `/system/bin/mobile-mcp-location` |
 | `HDC_PATH` | 鸿蒙 / OpenHarmony 使用的 HDC 可执行文件绝对路径；未设置时从 PATH 查找。 | `/path/to/hdc` |
