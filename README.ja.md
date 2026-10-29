@@ -6,7 +6,7 @@
 
 このサーバーにより、エージェントや LLM は、構造化されたアクセシビリティスナップショット、またはスクリーンショットに基づく座標タップを通じて、ネイティブの iOS、Android、HarmonyOS / OpenHarmony アプリケーションおよびデバイスを操作できます。
 
-> **このブランチの HarmonyOS / OpenHarmony 対応：**[セットアップ手順](docs/harmonyos.md)に従って本リポジトリをビルドしてください。下記の上流 npm インストールにはこの対応は含まれません。実機検証は未実施です。録画、クリップボード、位置情報の上書きなどの未対応機能は対応表に記載しています。
+> **このブランチの HarmonyOS / OpenHarmony 対応：**[セットアップ手順](docs/harmonyos.md)に従って本リポジトリをビルドしてください。下記の上流 npm インストールにはこの対応は含まれません。実機検証は未実施です。ネイティブ録画にはデバイス SDK でビルドしたヘルパーが必要です。クリップボード、位置情報の上書きなどの未対応機能は対応表に記載しています。
 
 **Claude Code、Codex、Gemini、GitHub Copilot、Antigravity に対応** — その他 MCP 互換クライアントでも動作します。
 
@@ -537,6 +537,7 @@ Gmail to contacts "team@example.com".
 
 | 変数 | 説明 | 例 |
 |---|---|---|
+| `HARMONY_RECORDER_PATH` | SDK でビルドした HarmonyOS 録画ヘルパーの絶対パス。SDK/実機検証は未完了です。 | `/path/to/mobile-mcp-recorder` |
 | `HDC_PATH` | HarmonyOS / OpenHarmony 用 HDC 実行ファイルの絶対パス。未設定の場合は PATH を使用します。 | `/path/to/hdc` |
 | `MOBILEMCP_AUTH` | Streamable HTTP サーバー（`--listen`）で Bearer トークンを必須にします。設定すると、すべてのリクエストが `Authorization: Bearer <token>` を送信する必要があります。 | `MOBILEMCP_AUTH=my-secret-token` |
 | `MOBILEMCP_DISABLE_TELEMETRY` | 匿名の利用テレメトリを無効にします。 | `MOBILEMCP_DISABLE_TELEMETRY=1` |

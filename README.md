@@ -6,7 +6,7 @@ This MCP server provides a shared interface for mobile automation across iOS, An
 
 This server allows Agents and LLMs to interact with native iOS, Android, and HarmonyOS / OpenHarmony applications and devices through structured accessibility snapshots or coordinate-based taps based on screenshots.
 
-> **HarmonyOS / OpenHarmony on this branch:** build and run this repository locally using the [setup guide](docs/harmonyos.md). The upstream npm quick-install commands below do not include this adapter. Hardware validation is pending; recording, clipboard, location overrides and other remaining gaps are listed in the capability matrix.
+> **HarmonyOS / OpenHarmony on this branch:** build and run this repository locally using the [setup guide](docs/harmonyos.md). The upstream npm quick-install commands below do not include this adapter. Hardware validation is pending. Native recording requires a device-SDK-built helper; clipboard, location overrides and other remaining gaps are listed in the capability matrix.
 
 **Works with Claude Code, Codex, Gemini, GitHub Copilot, Antigravity** — or any MCP-compatible client.
 
@@ -549,6 +549,7 @@ Gmail to contacts "team@example.com".
 
 | Variable | Description | Example |
 |---|---|---|
+| `HARMONY_RECORDER_PATH` | Absolute path to the SDK-built native HarmonyOS recorder; required for recording. SDK/device validation is pending. | `/path/to/mobile-mcp-recorder` |
 | `HDC_PATH` | Absolute path to the HDC executable for HarmonyOS / OpenHarmony; otherwise uses PATH. | `/path/to/hdc` |
 | `MOBILEMCP_AUTH` | Require a Bearer token on the Streamable HTTP server (`--listen`) — every request must then send `Authorization: Bearer <token>`. | `MOBILEMCP_AUTH=my-secret-token` |
 | `MOBILEMCP_DISABLE_TELEMETRY` | Disable anonymous usage telemetry. | `MOBILEMCP_DISABLE_TELEMETRY=1` |

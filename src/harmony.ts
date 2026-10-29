@@ -8,6 +8,7 @@ import { PNG } from "./png";
 import { getJpegDimensions } from "./jpeg";
 import { collectHarmonyLogs } from "./harmony-logs";
 import { HarmonyCrashes, HarmonyCrash } from "./harmony-crashes";
+import { HarmonyRecording, RecordingResult } from "./harmony-recording";
 import { ActionableError, Button, ForegroundApp, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
 
 export const HARMONY_DEVICE_PREFIX = "harmony:";
@@ -187,6 +188,7 @@ export const parseHarmonyLayout = (layout: unknown, generation: number): ScreenE
 };
 
 export class HarmonyRobot implements Robot {
+	private recording?: HarmonyRecording;
 	private target: string;
 	private generation = 0;
 	private snapshot: string | undefined;
@@ -391,6 +393,22 @@ export class HarmonyRobot implements Robot {
 
 	public getCrash(id: string): string {
 		return new HarmonyCrashes(this.hdc, this.target).read(id);
+	}
+
+	public hasRecording(): boolean { return this.recording?.isBusy() ?? false; }
+
+	public async startRecording(output?: string, timeLimit?: number): Promise<string> {
+		this.recording ??= new HarmonyRecording(this.hdc, this.target);
+		const { width, height } = await this.getScreenSize();
+		return this.recording.start(width, height, output, timeLimit);
+	}
+
+	public async stopRecording(): Promise<RecordingResult> {
+		if (!this.recording) {
+			throw new ActionableError("No HarmonyOS recording has been started");
+		}
+
+		return this.recording.stop();
 	}
 
 	public async setOrientation(orientation: Orientation): Promise<void> {

@@ -95,7 +95,7 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG/JPEG screenshots, HiLog device logs, focused app inspection, crash reports (requires system log read permission), app management and URLs. Recording, clipboard,
+PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), focused app inspection, crash reports (requires system log read permission), app management and URLs. Clipboard,
 GPS override, folding, custom-duration long press and setting orientation
 are not supported by this backend. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
@@ -482,6 +482,11 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		{ address: z.string().describe("Device network address including port, e.g. 192.168.1.10:5555") },
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 		async ({ address }) => {
+			const cached = robotCache.get(`harmony:${address}`);
+			if (cached instanceof HarmonyRobot && cached.hasRecording()) {
+				throw new ActionableError("Collect the HarmonyOS recording with mobile_stop_screen_recording before changing its connection");
+			}
+
 			const device = harmonyManager.connect(address);
 			robotCache.delete(device);
 			return `Connected HarmonyOS device: ${device}`;
@@ -494,6 +499,11 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		{ address: z.string().describe("The exact network address and port used to connect") },
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 		async ({ address }) => {
+			const cached = robotCache.get(`harmony:${address}`);
+			if (cached instanceof HarmonyRobot && cached.hasRecording()) {
+				throw new ActionableError("Collect the HarmonyOS recording with mobile_stop_screen_recording before changing its connection");
+			}
+
 			harmonyManager.disconnect(address);
 			robotCache.delete(`harmony:${address}`);
 			return `Disconnected HarmonyOS device: harmony:${address}`;
@@ -1255,16 +1265,16 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		},
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 		async ({ device, output, timeLimit }) => {
-			if (isHarmonyDevice(device)) {
-				throw new ActionableError("Screen recording is not supported by the HarmonyOS HDC backend");
-			}
-
 			if (output) {
 				validateFileExtension(output, ALLOWED_RECORDING_EXTENSIONS, "start_screen_recording");
 				validateOutputPath(output);
 			}
 
-			getRobotFromDevice(device);
+			const robot = getRobotFromDevice(device);
+			if (isHarmonyDevice(device)) {
+				const destination = await (robot as HarmonyRobot).startRecording(output, timeLimit);
+				return `HarmonyOS screen recording started. Output will be saved to: ${destination}`;
+			}
 
 			if (activeRecordings.has(device)) {
 				throw new ActionableError(`Device "${device}" is already being recorded. Stop the current recording first with mobile_stop_screen_recording.`);
@@ -1318,7 +1328,8 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 		async ({ device }) => {
 			if (isHarmonyDevice(device)) {
-				throw new ActionableError("Screen recording is not supported by the HarmonyOS HDC backend");
+				const result = await (getRobotFromDevice(device) as HarmonyRobot).stopRecording();
+				return `Recording stopped. File: ${result.output} (${result.bytes} bytes, ~${Math.round(result.durationSeconds)}s)`;
 			}
 
 			const recording = activeRecordings.get(device);

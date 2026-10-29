@@ -10,6 +10,7 @@ import type { Robot } from "../src/robot";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import type { ChildProcess } from "node:child_process";
+import { HarmonyRobot } from "../src/harmony";
 
 const originalHdcExecute = Hdc.prototype.executeCommand;
 const originalHdcShell = Hdc.prototype.shell;
@@ -169,8 +170,6 @@ test("unsupported HarmonyOS tools return errors instead of falling through to mo
 			{ name: "mobile_fold_device", args: { posture: "open" } },
 			{ name: "mobile_set_location", args: {} },
 			{ name: "mobile_clipboard", args: {} },
-			{ name: "mobile_start_screen_recording", args: {} },
-			{ name: "mobile_stop_screen_recording", args: {} },
 		];
 		for (const { name, args } of cases) {
 			const result: any = await client.callTool({ name, arguments: { device: "harmony:MATE60", ...args } });
@@ -350,4 +349,78 @@ test("lists and reads HarmonyOS crash reports through MCP", async () => {
 		expect(denied.isError).toBe(true);
 		expect(denied.content[0].text).toContain("permission denied");
 	});
+});
+
+test("starts and collects native recording across HTTP-style server instances", async () => {
+	const directory = fs.mkdtempSync(path.join(os.tmpdir(), "mobile-mcp-record-protocol-"));
+	const originalPath = process.env.HARMONY_RECORDER_PATH;
+	const originalSize = HarmonyRobot.prototype.getScreenSize;
+	const device = "harmony:192.168.1.5:5555";
+	const output = path.join(directory, "record.mp4");
+	const box = (type: string) => {
+		const result = Buffer.alloc(12);
+		result.writeUInt32BE(12);
+		result.write(type, 4);
+		return result;
+	};
+	// Only a synthetic MP4 container; device video decoding remains hardware QA.
+	const mp4 = Buffer.concat([box("ftyp"), box("moov"), box("mdat")]);
+	const child = Object.assign(new EventEmitter(), {
+		stdout: new PassThrough(), stderr: new PassThrough(),
+		kill() { queueMicrotask(() => child.emit("close", -1)); return true; },
+	});
+	process.env.HARMONY_RECORDER_PATH = path.join(directory, "mock-recorder");
+	fs.writeFileSync(process.env.HARMONY_RECORDER_PATH, "mock only");
+	HarmonyRobot.prototype.getScreenSize = async () => ({ width: 1080, height: 2400, scale: 1 });
+	Hdc.prototype.executeCommand = args => {
+		if (args[0] === "list") {
+			return Buffer.from("192.168.1.5:5555");
+		}
+
+		if (args[2] === "file" && args[3] === "recv") {
+			fs.writeFileSync(args[5], mp4);
+		}
+
+		return Buffer.from("");
+	};
+	Hdc.prototype.spawnShell = () => {
+		queueMicrotask(() => child.stdout.write('{"event":"started","pid":123}\n'));
+		return child as unknown as ChildProcess;
+	};
+	Hdc.prototype.shellChecked = (_target, args) => {
+		if (args[0] === "touch") {
+			queueMicrotask(() => {
+				child.stdout.write(JSON.stringify({ event: "stopped", bytes: mp4.length }) + "\n");
+				child.emit("close", 0);
+			});
+		}
+
+		return "";
+	};
+	const robotCache = new Map<string, Robot>();
+	try {
+		await withClient(async client => {
+			const started: any = await client.callTool({ name: "mobile_start_screen_recording", arguments: { device, output, timeLimit: 10 } });
+			expect(started.isError).not.toBe(true);
+			expect(started.content[0].text).toContain("recording started");
+		}, robotCache);
+		await withClient(async client => {
+			const disconnect: any = await client.callTool({ name: "mobile_disconnect_harmony_device", arguments: { address: "192.168.1.5:5555" } });
+			expect(disconnect.isError).toBe(true);
+			expect(disconnect.content[0].text).toContain("Collect the HarmonyOS recording");
+			const stopped: any = await client.callTool({ name: "mobile_stop_screen_recording", arguments: { device } });
+			expect(stopped.isError).not.toBe(true);
+			expect(stopped.content[0].text).toContain(output);
+			expect(fs.readFileSync(output)).toEqual(mp4);
+		}, robotCache);
+	} finally {
+		HarmonyRobot.prototype.getScreenSize = originalSize;
+		if (originalPath === undefined) {
+			delete process.env.HARMONY_RECORDER_PATH;
+		} else {
+			process.env.HARMONY_RECORDER_PATH = originalPath;
+		}
+
+		fs.rmSync(directory, { recursive: true, force: true });
+	}
 });

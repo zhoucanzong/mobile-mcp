@@ -6,7 +6,7 @@
 
 该服务器让智能体和 LLM 能够通过结构化的无障碍（accessibility）快照，或基于截图的坐标点击，来与原生 iOS、Android 和鸿蒙 / OpenHarmony 应用和设备交互。
 
-> **本分支的鸿蒙 / OpenHarmony 支持：**请按[接入说明](docs/harmonyos.md)构建并运行本仓库。下方上游 npm 快速安装命令不包含本分支适配。当前已完成的功能仍待真机验证；录屏、剪贴板、定位覆盖等剩余差异见功能对照。
+> **本分支的鸿蒙 / OpenHarmony 支持：**请按[接入说明](docs/harmonyos.md)构建并运行本仓库。下方上游 npm 快速安装命令不包含本分支适配。当前功能仍待真机验证；原生录屏需要 SDK 构建的设备组件，剪贴板、定位覆盖等剩余差异见功能对照。
 
 **支持 Claude Code、Codex、Gemini、GitHub Copilot、Antigravity** —— 以及任何兼容 MCP 的客户端。
 
@@ -539,6 +539,7 @@ Gmail to contacts "team@example.com".
 
 | 变量 | 说明 | 示例 |
 |---|---|---|
+| `HARMONY_RECORDER_PATH` | SDK 构建的鸿蒙原生录屏组件绝对路径；录屏时必需，SDK/设备验证待完成。 | `/path/to/mobile-mcp-recorder` |
 | `HDC_PATH` | 鸿蒙 / OpenHarmony 使用的 HDC 可执行文件绝对路径；未设置时从 PATH 查找。 | `/path/to/hdc` |
 | `MOBILEMCP_AUTH` | 要求 Streamable HTTP 服务器（`--listen`）使用 Bearer token —— 设置后每个请求都必须发送 `Authorization: Bearer <token>`。 | `MOBILEMCP_AUTH=my-secret-token` |
 | `MOBILEMCP_DISABLE_TELEMETRY` | 关闭匿名使用情况遥测。 | `MOBILEMCP_DISABLE_TELEMETRY=1` |

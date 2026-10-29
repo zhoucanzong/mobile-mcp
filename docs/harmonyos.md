@@ -55,7 +55,7 @@ npm run build
 | 打开网址 | `aa start -A ohos.want.action.viewData -U` | 上层仍默认仅允许 HTTP/HTTPS |
 | 批量执行 | 复用 `mobile_batch_commands` | 使用元素引用的步骤之间需要重新读取元素，或使用已知坐标 |
 
-暂不支持：自定义时长长按、设置屏幕方向、剪贴板工具、定位覆盖、折叠和录屏。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
+暂不支持：自定义时长长按、设置屏幕方向、剪贴板工具、定位覆盖和折叠。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
 
 每次操作后会清除鸿蒙元素引用；按引用操作前还会重新读取布局。如果布局与引用来自的快照不同，会要求重新读取元素。界面持续变化时，可读取新快照后根据坐标操作；操作与布局校验之间仍可能发生变化。stdio 连接和 HTTP 请求均保留设备引用上下文；共享设备的客户端仍需协调操作，同一设备没有并发操作隔离。
 
@@ -93,7 +93,7 @@ npm run build
 | `mobile_get_device_logs` | 已实现：HiLog 缓冲区及实时流，NDJSON，筛选及 30 秒固定期限 |
 | `mobile_set_location` | 待适配，明确返回不支持 |
 | `mobile_fold_device` | 未实现；还受设备是否有折叠硬件限制 |
-| `mobile_start_screen_recording` / `mobile_stop_screen_recording` | 待适配，明确返回不支持 |
+| `mobile_start_screen_recording` / `mobile_stop_screen_recording` | 原生组件及 MCP 协议已实现、模拟验证通过；需 HARMONY_RECORDER_PATH，SDK 链接和真机授权仍待验证 |
 | `mobile_list_crashes` / `mobile_get_crash` | 已实现：系统故障日志目录中的 C++、JS、Rust、仓颉报告；要求设备授权读取目录 |
 | `mobile_login_to_cloud_provider` / `mobile_list_remote_devices` / `mobile_allocate_remote_device` / `mobile_release_remote_device` | 保留原云提供商接口，不提供鸿蒙云设备 |
 
@@ -153,8 +153,12 @@ npm run build
 
 ## 录屏适配进度
 
-录屏尚未接入 MCP。[设备端原生组件](../native/harmony-recorder/README.md)已实现 AVScreenCapture 初始化、授权状态处理、限时/手动停止和文件收尾；9 个主机模拟状态场景已通过，并加入分支 CI。设备端二进制的 SDK 链接验证仍未完成。
+[设备端原生组件](../native/harmony-recorder/README.md)与 MCP 录屏工具已接通，包含组件部署、系统 STARTED 状态确认、限时/手动停止、跨 HTTP 请求会话保留、HDC 文件回收和失败处理。原生状态模拟测试与主机协议测试已通过；设备端二进制的 SDK 链接及商业设备授权验证仍未完成。
 
-后续还需要实际 SDK 构建与部署验证、MCP 停止/限时控制接入、HDC 文件回收以及主机端协议测试。工具必须在系统 STARTED 回调后才能报告开始成功，取消授权和错误必须显式返回。商业设备执行权限及授权流程需第二阶段确认。
+将用鸿蒙 Native SDK 构建的组件绝对路径设为 `HARMONY_RECORDER_PATH`。开始录屏时上传独立的会话组件，使用新建的设备端 MP4 路径；原生组件只采集视频，不采集音频。`timeLimit` 在鸿蒙上为 1–86400 的整数秒，省略则直到手动或系统停止。授权/启动等待有 65 秒期限，停止收尾等待为 15 秒。系统确认开始前，工具不会报告成功。
+
+限时或系统停止后的结果仍可用 `mobile_stop_screen_recording` 收集。在结果收集前，不能开始同一设备的新录制，也不能通过网络工具重连/断开该设备。停止成功要求原生组件发出完成事件、进程正常退出、拉取字节数一致，并通过 MP4 顶层容器结构检查（ftyp、moov、mdat 与边界）；这不等同于逐帧解码验证。只有这些检查通过后才保存到目标路径。
+
+录制或传输失败时，工具报告错误及设备端恢复路径，保留已有目标文件；本地已拉取的异常或未成功移动的文件也可能保留供排查。重启服务后的会话恢复尚未实现。商业设备是否允许从 HDC 执行该原生组件、是否需要签名应用承载，仍需 SDK 和第二阶段手机验证。
 
 接口依据：[AVScreenCapture C API](https://github.com/openharmony/multimedia_player_framework/blob/9f9a285ff489afa66861a85dcc4213336a463b36/interfaces/kits/c/native_avscreen_capture.h)、[配置及状态定义](https://github.com/openharmony/multimedia_player_framework/blob/9f9a285ff489afa66861a85dcc4213336a463b36/interfaces/kits/c/native_avscreen_capture_base.h)。
