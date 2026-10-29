@@ -95,8 +95,9 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), verified plain-text clipboard access (requires system command and permission), verified orientation control, named fold-state simulation on supported hardware, focused app inspection, crash reports (requires system log read permission), app management and URLs. GPS override and custom-duration long press
-are not supported by this backend. Ask for a fresh UI snapshot after each
+PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), verified plain-text clipboard access (requires system command and permission), verified orientation control, named fold-state simulation on supported hardware, focused app inspection, crash reports (requires system log read permission), app management and URLs. Custom-duration long press is not supported by this backend.
+Mock location requires an authorized HARMONY_LOCATION_COMMAND and must be
+cleared before changing the device connection. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
 input succeeded until you have checked the resulting screen.
 
@@ -482,6 +483,9 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 		async ({ address }) => {
 			const cached = robotCache.get(`harmony:${address}`);
+			if (cached instanceof HarmonyRobot && cached.hasLocationOverride()) {
+				throw new ActionableError("Clear the HarmonyOS mock location before changing its connection");
+			}
 			if (cached instanceof HarmonyRobot && cached.hasRecording()) {
 				throw new ActionableError("Collect the HarmonyOS recording with mobile_stop_screen_recording before changing its connection");
 			}
@@ -499,6 +503,9 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 		async ({ address }) => {
 			const cached = robotCache.get(`harmony:${address}`);
+			if (cached instanceof HarmonyRobot && cached.hasLocationOverride()) {
+				throw new ActionableError("Clear the HarmonyOS mock location before changing its connection");
+			}
 			if (cached instanceof HarmonyRobot && cached.hasRecording()) {
 				throw new ActionableError("Collect the HarmonyOS recording with mobile_stop_screen_recording before changing its connection");
 			}
@@ -1154,7 +1161,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 	tool(
 		"mobile_set_location",
 		"Set Location",
-		"Override the GPS location reported by the device, or clear the override to restore the real location. Omit latitude and longitude to clear.",
+		"Override the GPS location reported by the device, or clear the override to restore the real location. Omit latitude and longitude to clear. HarmonyOS requires a platform-built, system-authorized mock-location component configured by HARMONY_LOCATION_COMMAND, USB connection and developer mode. Setting starts a persistent session after coordinate readback; clearing must be confirmed by the component.",
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
 			latitude: z.number().min(-90).max(90).optional().describe("Latitude in decimal degrees, e.g. 37.7749. Omit together with longitude to clear the override."),

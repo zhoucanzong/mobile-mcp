@@ -163,19 +163,6 @@ test("batches coordinate tap, Chinese input and submit through HDC", async () =>
 	});
 });
 
-test("unsupported HarmonyOS tools return errors instead of falling through to mobilecli", async () => {
-	await withClient(async client => {
-		const cases = [
-			{ name: "mobile_set_location", args: {} },
-		];
-		for (const { name, args } of cases) {
-			const result: any = await client.callTool({ name, arguments: { device: "harmony:MATE60", ...args } });
-			expect(result.isError).toBe(true);
-			expect(result.content[0].text).toMatch(/not supported.*(?:HarmonyOS|backend)/);
-		}
-	});
-});
-
 test("returns actual PNG content and saves it without pretending it is JPEG", async () => {
 	const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=", "base64");
 	Hdc.prototype.executeCommand = args => {
@@ -479,4 +466,50 @@ test("reads, clears and verifies the HarmonyOS clipboard through MCP", async () 
 		expect(denied.isError).toBe(true);
 		expect(denied.content[0].text).toContain("ERR_PERMISSION_DENIED");
 	});
+});
+
+test("sets and clears a persistent location across HTTP-style MCP requests", async () => {
+	const original = process.env.HARMONY_LOCATION_COMMAND;
+	process.env.HARMONY_LOCATION_COMMAND = "/system/bin/mobile-mcp-location";
+	const device = "harmony:192.168.1.6:5555";
+	const cache = new Map<string, Robot>();
+	const child = Object.assign(new EventEmitter(), {
+		stdout: new PassThrough(), stderr: new PassThrough(),
+		kill() { queueMicrotask(() => child.emit("close", -1)); return true; },
+	});
+	Hdc.prototype.executeCommand = () => Buffer.from("192.168.1.6:5555");
+	Hdc.prototype.spawnShell = (target, args) => {
+		expect(target).toBe("192.168.1.6:5555");
+		expect(args.slice(0, 4)).toEqual(["/system/bin/mobile-mcp-location", "run", "31.2", "121.5"]);
+		queueMicrotask(() => child.stdout.write('{"event":"started","latitude":31.2,"longitude":121.5}\n'));
+		return child as unknown as ChildProcess;
+	};
+	Hdc.prototype.shellChecked = (_target, args) => {
+		if (args[0] === "touch") {
+			queueMicrotask(() => {
+				child.stdout.write('{"event":"cleared","code":0}\n');
+				child.emit("close", 0);
+			});
+		}
+
+		return "";
+	};
+	try {
+		await withClient(async client => {
+			const set: any = await client.callTool({ name: "mobile_set_location", arguments: { device, latitude: 31.2, longitude: 121.5 } });
+			expect(set.isError).not.toBe(true);
+			expect(set.content[0].text).toContain("31.2,121.5");
+		}, cache);
+		await withClient(async client => {
+			const disconnect: any = await client.callTool({ name: "mobile_disconnect_harmony_device", arguments: { address: "192.168.1.6:5555" } });
+			expect(disconnect.isError).toBe(true);
+			expect(disconnect.content[0].text).toContain("Clear the HarmonyOS mock location");
+			const clear: any = await client.callTool({ name: "mobile_set_location", arguments: { device } });
+			expect(clear.isError).not.toBe(true);
+			expect(clear.content[0].text).toBe("Cleared location override");
+		}, cache);
+		expect((cache.get(device) as HarmonyRobot).hasLocationOverride()).toBe(false);
+	} finally {
+		if (original === undefined) { delete process.env.HARMONY_LOCATION_COMMAND; } else { process.env.HARMONY_LOCATION_COMMAND = original; }
+	}
 });

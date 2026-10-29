@@ -55,7 +55,7 @@ npm run build
 | 打开网址 | `aa start -A ohos.want.action.viewData -U` | 上层仍默认仅允许 HTTP/HTTPS |
 | 批量执行 | 复用 `mobile_batch_commands` | 使用元素引用的步骤之间需要重新读取元素，或使用已知坐标 |
 
-暂不支持：自定义时长长按和定位覆盖。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
+尚不支持自定义时长长按等平台特定参数；对应调用会明确报错，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
 
 每次操作后会清除鸿蒙元素引用；按引用操作前还会重新读取布局。如果布局与引用来自的快照不同，会要求重新读取元素。界面持续变化时，可读取新快照后根据坐标操作；操作与布局校验之间仍可能发生变化。stdio 连接和 HTTP 请求均保留设备引用上下文；共享设备的客户端仍需协调操作，同一设备没有并发操作隔离。
 
@@ -91,7 +91,7 @@ npm run build
 | `mobile_set_orientation` | 已实现：开发者模式显示服务方向注入，并通过屏幕宽高确认结果；不修改旋转锁定 |
 | `mobile_clipboard` | 已实现：系统纯文本剪贴板读写、清空与回读校验；要求 ohos-pasteboard 及读取权限 |
 | `mobile_get_device_logs` | 已实现：HiLog 缓冲区及实时流，NDJSON，筛选及 30 秒固定期限 |
-| `mobile_set_location` | 设备端模拟定位组件及状态测试已实现；MCP 接入、平台链接和系统授权仍待完成 |
+| `mobile_set_location` | 原生组件与 MCP 持续会话已接入、模拟验证通过；完整平台链接及系统授权仍待完成 |
 | `mobile_fold_device` | 已实现：支持设备上的 named posture 状态模拟并核对返回值；不支持任意铰链角度，非折叠设备不能提供该能力 |
 | `mobile_start_screen_recording` / `mobile_stop_screen_recording` | 原生组件及 MCP 协议已实现、模拟验证通过；需 HARMONY_RECORDER_PATH，SDK 链接和真机授权仍待验证 |
 | `mobile_list_crashes` / `mobile_get_crash` | 已实现：系统故障日志目录中的 C++、JS、Rust、仓颉报告；要求设备授权读取目录 |
@@ -180,3 +180,13 @@ npm run build
 写入上限为 64 KiB UTF-8，不接受 NUL 或无效 Unicode。为保留尾部换行和避免 shell 解释文本，写入通过独立临时文本文件传输；结束后清理主机及设备文件，清理失败会报告。系统命令将单独的 `--help` 参数作为帮助选项，当前适配会在任何写入前拒绝这一字面文本，不替换字符或报告成功。
 
 接口及错误结构依据：[系统剪贴板命令文档](https://github.com/openharmony/distributeddatamgr_pasteboard/blob/c2cd4f0174c4d0a40dba8a08ebb16b89fad7b91c/tools/ohos-pasteboard/docs/README.md)、[命令清单与权限](https://github.com/openharmony/distributeddatamgr_pasteboard/blob/c2cd4f0174c4d0a40dba8a08ebb16b89fad7b91c/tools/ohos-pasteboard/ohos-pasteboard.json)。
+
+## 定位覆盖会话
+
+[模拟定位组件](../native/harmony-location/README.md)已接入 `mobile_set_location`。用 `HARMONY_LOCATION_COMMAND` 指定设备侧已部署且获得系统授权的组件路径（或单个命令名）；不会自动提权、授予权限或把普通应用 NDK 程序当作系统组件。
+
+设置后只有收到与目标经纬度一致的 `started` 确认才返回成功，组件会继续定期发送坐标。新坐标更新会串行停止旧会话后再启动新会话。省略经纬度时执行清除；如果没有本地会话，仍会调用组件的 `clear` 并要求设备确认关闭模拟模式。关闭模拟不保证立即获得新的真实 GPS 定位。
+
+开始/清除阶段各有 10 秒等待期限。进程异常退出时不会自动解释为已清除；恢复会执行显式关闭，并要求收到旧会话终止事件或设备端终止记录。缺少终止证据时，报告“已关闭模拟模式但旧发送进程终止未确认”，保留停止标记和会话，阻止新的模拟会话及网络连接变更，直到重试清除确认完成。设备组件在停止发布后写入 `.done` 终止记录，支持 HDC 输出通道丢失后的恢复。
+
+已有模拟验证覆盖坐标范围、确认内容、更新顺序、权限错误、超时、异常断连、终止记录和跨 HTTP 请求操作。完整平台构建、授权身份和目标手机验证仍未完成。普通 shell token 被系统权限检查拒绝是已确认的接口边界，不代表只开启 USB 调试即可使用定位覆盖。

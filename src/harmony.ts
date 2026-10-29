@@ -10,6 +10,7 @@ import { collectHarmonyLogs } from "./harmony-logs";
 import { HarmonyCrashes, HarmonyCrash } from "./harmony-crashes";
 import { HarmonyRecording, RecordingResult } from "./harmony-recording";
 import { HarmonyClipboard } from "./harmony-clipboard";
+import { HarmonyLocation } from "./harmony-location";
 import { ActionableError, Button, FoldPosture, ForegroundApp, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
 
 export const HARMONY_DEVICE_PREFIX = "harmony:";
@@ -190,6 +191,7 @@ export const parseHarmonyLayout = (layout: unknown, generation: number): ScreenE
 
 export class HarmonyRobot implements Robot {
 	private recording?: HarmonyRecording;
+	private location?: HarmonyLocation;
 	private target: string;
 	private generation = 0;
 	private snapshot: string | undefined;
@@ -405,6 +407,17 @@ export class HarmonyRobot implements Robot {
 	}
 
 	public hasRecording(): boolean { return this.recording?.isBusy() ?? false; }
+	public hasLocationOverride(): boolean { return this.location?.isBusy() ?? false; }
+
+	public async setLocation(latitude: number, longitude: number): Promise<void> {
+		this.location ??= new HarmonyLocation(this.hdc, this.target);
+		return this.location.set(latitude, longitude);
+	}
+
+	public async clearLocation(): Promise<void> {
+		this.location ??= new HarmonyLocation(this.hdc, this.target);
+		return this.location.clear();
+	}
 
 	public async startRecording(output?: string, timeLimit?: number): Promise<string> {
 		this.recording ??= new HarmonyRecording(this.hdc, this.target);

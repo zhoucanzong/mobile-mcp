@@ -2,10 +2,12 @@
 #include "locator_impl.h"
 #include "location.h"
 #include <csignal>
+#include <fcntl.h>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <sstream>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
@@ -84,11 +86,28 @@ int main(int argc, char** argv)
         std::cout << std::setprecision(17) << "{\"event\":\"started\",\"latitude\":"
                   << latitude << ",\"longitude\":" << longitude << "}" << std::endl;
     });
+    std::ostringstream terminal;
     if (outcome.code != 0 || outcome.clearCode != 0) {
-        std::cout << "{\"event\":\"error\",\"code\":" << outcome.code
-                  << ",\"clearCode\":" << outcome.clearCode << "}" << std::endl;
-        return 1;
+        terminal << "{\"event\":\"error\",\"code\":" << outcome.code
+                 << ",\"clearCode\":" << outcome.clearCode << "}";
+    } else {
+        terminal << "{\"event\":\"cleared\",\"code\":0}";
     }
-    std::cout << "{\"event\":\"cleared\",\"code\":0}" << std::endl;
-    return 0;
+    // Terminal receipt is written only after the publisher has stopped. It
+    // lets the host recover when the HDC output channel disappeared.
+    const std::string receipt = std::string(argv[4]) + ".done";
+    int fd = open(receipt.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+    if (fd >= 0) {
+        const auto data = terminal.str();
+        size_t offset = 0;
+        while (offset < data.size()) {
+            auto count = write(fd, data.data() + offset, data.size() - offset);
+            if (count <= 0) { break; }
+            offset += static_cast<size_t>(count);
+        }
+        fsync(fd);
+        close(fd);
+    }
+    std::cout << terminal.str() << std::endl;
+    return outcome.code == 0 && outcome.clearCode == 0 ? 0 : 1;
 }
