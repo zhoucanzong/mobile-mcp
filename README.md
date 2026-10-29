@@ -97,7 +97,7 @@ How we help to scale mobile automation:
 | Android Real Device | ✅ | `adb` + USB debugging enabled & authorized |
 | HarmonyOS / OpenHarmony real device (local extension) | Experimental; hardware validation pending | HDC + USB debugging + UITest; [setup, Chinese text and limitations](docs/harmonyos.md) |
 
-This local source extension adds a HarmonyOS HDC backend; it is not included in the upstream npm package. UI inspection, taps/double-taps, native-duration long presses, swipes, text input, PNG/JPEG screenshots, network device connections and basic app management are implemented with mocked transport tests. Real-device compatibility and Chinese text entry still require validation on the target phone. See [HarmonyOS setup and acceptance checks](docs/harmonyos.md).
+This local source extension adds a HarmonyOS HDC backend; it is not included in the upstream npm package. UI inspection, taps/double-taps, native-duration and custom-duration long presses (the latter requires uinput), swipes, text input, PNG/JPEG screenshots, network device connections and basic app management are implemented with mocked transport tests. Real-device compatibility and Chinese text entry still require validation on the target phone. See [HarmonyOS setup and acceptance checks](docs/harmonyos.md).
 
 ## 🔧 Available MCP Tools
 

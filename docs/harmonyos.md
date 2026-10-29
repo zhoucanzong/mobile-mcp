@@ -42,7 +42,7 @@ npm run build
 | 发现设备 | `hdc list targets` | 返回 `harmony:<连接标识>`；目前面向本地真机，未验证模拟器 |
 | 获取界面元素 | `uitest dumpLayout` | 解析 `attributes` / `children`、中文文字、描述、坐标及状态 |
 | 点击、双击 | `uitest uiInput click/doubleClick` | 支持坐标或最近一次读取的元素引用 |
-| 原生长按 | `uitest uiInput longClick` | 支持坐标或元素引用；省略 `duration` 使用系统默认时长，不能指定自定义时长 |
+| 原生长按 | `uitest uiInput longClick` | 支持坐标或元素引用；省略 `duration` 用系统默认时长，显式时长使用 uinput 按下/等待/抬起 |
 | 滑动 | `uitest uiInput swipe` | 坐标限制在截图给出的屏幕尺寸内 |
 | 文字输入 | `uitest uiInput text` | 需要 API 18+ 对应命令；输入框须先获得焦点，实际写入需回读验证 |
 | 按键 | `uitest uiInput keyEvent` | HOME、BACK、ENTER、BACKSPACE、POWER、VOLUME_UP、VOLUME_DOWN |
@@ -55,7 +55,7 @@ npm run build
 | 打开网址 | `aa start -A ohos.want.action.viewData -U` | 上层仍默认仅允许 HTTP/HTTPS |
 | 批量执行 | 复用 `mobile_batch_commands` | 使用元素引用的步骤之间需要重新读取元素，或使用已知坐标 |
 
-尚不支持自定义时长长按等平台特定参数；对应调用会明确报错，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
+精确铰链角度、启动语言覆盖等平台特定参数仍有能力限制；对应调用会明确报错，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
 
 每次操作后会清除鸿蒙元素引用；按引用操作前还会重新读取布局。如果布局与引用来自的快照不同，会要求重新读取元素。界面持续变化时，可读取新快照后根据坐标操作；操作与布局校验之间仍可能发生变化。stdio 连接和 HTTP 请求均保留设备引用上下文；共享设备的客户端仍需协调操作，同一设备没有并发操作隔离。
 
@@ -79,7 +79,7 @@ npm run build
 | `mobile_list_elements_on_screen` | 已实现：文字、坐标、状态和临时引用 |
 | `mobile_click_on_screen_at_coordinates` | 已实现：坐标/引用 |
 | `mobile_double_tap_on_screen` | 已实现：坐标/引用 |
-| `mobile_long_press_on_screen_at_coordinates` | 已实现：坐标/引用，仅系统默认时长 |
+| `mobile_long_press_on_screen_at_coordinates` | 已实现：坐标/引用，默认时长或 uinput 自定义时长 |
 | `mobile_swipe_on_screen` | 已实现 |
 | `mobile_type_keys` | 已实现：UTF-8 传输；实际中文输入待真机验收 |
 | `mobile_press_button` | 已实现：见上表限定的按键集合 |
@@ -196,3 +196,11 @@ npm run build
 华为[官方说明](https://consumer.huawei.com/cn/support/content/zh-cn16071458/)明确指出，HarmonyOS 5 及以上版本不再提供“选择模拟位置信息应用”选项。不能将 Android 或早期兼容 Android 的鸿蒙设置步骤用于当前原生鸿蒙手机。
 
 目前实现的是获系统授权条件下的模拟定位组件和 MCP 调用路径，不代表普通 Mate 60 Pro 已获得这些权限。系统源码中的身份检查允许特定原生/CLI 工具身份或系统应用，并另外验证 MOCK_LOCATION 权限；仅安装 SDK、自行编译或打开 USB 调试不会自动满足这些条件。针对该商业机型的公开授权申请路径尚未确认，因此不提供未经核实的签名、授权或菜单操作步骤。
+
+## 自定义长按时长
+
+省略 `duration` 时继续使用 UITest 原生长按。显式传入时长时，先核对 `uinput -?` 的触摸设备帮助段，再在同一进程内执行按下、等待和抬起：`uinput -T -d x y -i milliseconds -u x y`。时长按毫秒四舍五入，接受 1–10000ms，调用超时包含额外收尾时间。
+
+命令必须返回顺序正确的 touch down / touch up 记录。中途失败或未确认抬起时，会尝试单独补发抬起；恢复也失败时在错误中明确说明。命令执行确认不等同于目标 App 已响应长按，第二阶段仍需观察实际界面与手势时序。设备没有该系统工具或触摸间隔能力时会报错，不退化为默认时长。
+
+接口依据：[系统输入工具的触摸按下、间隔和抬起实现](https://github.com/openharmony/multimodalinput_input/blob/7f674c11dee34d4c158827ca8f0e8db3b12a1d4b/tools/inject_event/src/input_manager_command.cpp#L1396)。

@@ -307,7 +307,49 @@ export class HarmonyRobot implements Robot {
 	}
 
 	public async longPress(x: number, y: number, duration: number): Promise<void> {
-		throw new ActionableError("Custom-duration long press is not supported by the HarmonyOS HDC backend");
+		const px = Math.round(x), py = Math.round(y), milliseconds = Math.round(duration);
+		if (![px, py].every(value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647) ||
+			!Number.isFinite(duration) || milliseconds < 1 || milliseconds > 10000) {
+			throw new ActionableError("Invalid HarmonyOS long-press coordinates or duration (1..10000ms)");
+		}
+
+		let help: string;
+		try { help = this.hdc.shellChecked(this.target, ["uinput", "-?"]); } catch (error: any) {
+			throw new ActionableError(`Custom-duration long press requires the device uinput tool: ${error.message}`);
+		}
+
+		const heading = /^\s*-T\s+--touch[^\r\n]*$/m.exec(help);
+		const touchHelp = heading ? help.slice(heading.index + heading[0].length).split(/\r?\n\s*(?:-[A-Z]\s|The option are:)/)[0] : "";
+		if (!["-d", "-u", "-i"].every(option => new RegExp(`^\\s*${option}\\s`, "m").test(touchHelp))) {
+			throw new ActionableError("Device uinput does not advertise touch down/up and interval support");
+		}
+
+		this.invalidateRefs();
+		try {
+			const result = this.hdc.shellChecked(this.target, ["uinput", "-T", "-d", `${px}`, `${py}`, "-i", `${milliseconds}`, "-u", `${px}`, `${py}`], milliseconds + 10000);
+			const lines = result.split(/\r?\n/).map(line => line.trim());
+			const down = lines.indexOf(`touch down ${px} ${py}`);
+			const up = lines.indexOf(`touch up ${px} ${py}`);
+			if (down < 0 || up <= down || /\b(?:failed|denied|invalid|error)\b/i.test(result)) {
+				throw new ActionableError("uinput did not confirm the ordered touch-down/touch-up sequence");
+			}
+		} catch (error: any) {
+			try {
+				const released = this.hdc.shellChecked(this.target, ["uinput", "-T", "-u", `${px}`, `${py}`]);
+				if (!released.split(/\r?\n/).some(line => line.trim() === `touch up ${px} ${py}`) || /\b(?:failed|denied|invalid|error)\b/i.test(released)) {
+					throw new ActionableError("uinput did not confirm the recovery touch-up");
+				}
+			} catch (release: any) {
+				throw new ActionableError(`Long press failed: ${error.message}. Touch release also failed: ${release.message}`);
+			}
+
+			throw error;
+		}
+	}
+
+	public async longPressByRef(ref: string, duration: number): Promise<void> {
+		const rect = this.resolveRef(ref);
+		await this.longPress(rect.x + rect.width / 2, rect.y + rect.height / 2, duration);
 	}
 
 	public async longPressDefault(x: number, y: number): Promise<void> {

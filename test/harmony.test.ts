@@ -113,7 +113,6 @@ test("does not interpret UITest help as successful input on older devices", asyn
 
 test("rejects unsupported operations and invalid app arguments before acting", async () => {
 	const { robot, calls } = mockRobot();
-	await expect(robot.longPress(10, 10, 500)).rejects.toThrow("not supported");
 	await expect(robot.launchApp("com.example", "zh-CN")).rejects.toThrow("not supported");
 	await expect(robot.installApp("app.apk")).rejects.toThrow(".hap");
 	await expect(robot.uninstallApp("-n")).rejects.toThrow("Invalid");

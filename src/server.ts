@@ -95,7 +95,7 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), verified plain-text clipboard access (requires system command and permission), verified orientation control, named fold-state simulation on supported hardware, focused app inspection, crash reports (requires system log read permission), app management and URLs. Custom-duration long press is not supported by this backend.
+PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), verified plain-text clipboard access (requires system command and permission), verified orientation control, named fold-state simulation on supported hardware, focused app inspection, crash reports (requires system log read permission), app management and URLs. Custom-duration long press requires the device uinput touch/interval commands.
 Mock location requires an authorized HARMONY_LOCATION_COMMAND and must be
 cleared before changing the device connection. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
@@ -842,7 +842,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 			x: z.coerce.number().min(0).optional().describe("The x coordinate to long press on the screen, in pixels. Required unless ref is given"),
 			y: z.coerce.number().min(0).optional().describe("The y coordinate to long press on the screen, in pixels. Required unless ref is given"),
 			ref: z.string().optional().describe("Element ref from mobile_list_elements_on_screen, e.g. \"@e5\". Takes precedence over x,y"),
-			duration: z.coerce.number().min(1).max(10000).optional().describe("Duration of the long press in milliseconds. Defaults to 500ms. On HarmonyOS omit this parameter to use the native duration; custom duration is not supported."),
+			duration: z.coerce.number().min(1).max(10000).optional().describe("Duration of the long press in milliseconds. Defaults to 500ms. On HarmonyOS omit this parameter to use the native duration; explicit duration requires uinput touch down/up and interval support."),
 		},
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 		async ({ device, x, y, ref, duration }) => {

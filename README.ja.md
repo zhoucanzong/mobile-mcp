@@ -121,7 +121,7 @@ npx @mobilenext/mobile-mcp@latest install
 - **`mobile_list_elements_on_screen`** - UI 要素を座標やプロパティとともに一覧表示します
 - **`mobile_click_on_screen_at_coordinates`** - 指定した x,y 座標をクリックします
 - **`mobile_double_tap_on_screen`** - 指定した座標をダブルタップします
-- **`mobile_long_press_on_screen_at_coordinates`** - 指定した座標を長押しします
+- **`mobile_long_press_on_screen_at_coordinates`** - 指定した座標を長押しします。HarmonyOS の明示的な時間指定には uinput のタッチ操作対応が必要です
 - **`mobile_swipe_on_screen`** - 任意の方向にスワイプします（上、下、左、右）
 - **`mobile_start_screen_recording`** - デバイス画面の録画をビデオファイルへ開始します
 - **`mobile_stop_screen_recording`** - 実行中の画面録画を停止し、ビデオを保存します

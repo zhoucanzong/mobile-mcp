@@ -232,7 +232,7 @@ test("uses the native long-press duration only when duration was omitted", async
 		expect(result.content[0].text).toContain("platform default duration");
 		const custom: any = await client.callTool({ name: "mobile_long_press_on_screen_at_coordinates", arguments: { device: "harmony:MATE60", x: 20, y: 30, duration: 500 } });
 		expect(custom.isError).toBe(true);
-		expect(custom.content[0].text).toContain("Custom-duration");
+		expect(custom.content[0].text).toMatch(/uinput/);
 	});
 });
 
@@ -512,4 +512,19 @@ test("sets and clears a persistent location across HTTP-style MCP requests", asy
 	} finally {
 		if (original === undefined) { delete process.env.HARMONY_LOCATION_COMMAND; } else { process.env.HARMONY_LOCATION_COMMAND = original; }
 	}
+});
+
+test("executes an explicit-duration long press by element ref and expires that ref", async () => {
+	Hdc.prototype.shellChecked = (_target, args) => args[1] === "-?"
+		? "-T --touch\n-d x y\n-u x y\n-i time\n"
+		: "touch down 60 50\ntouch up 60 50\n";
+	await withClient(async client => {
+		await client.callTool({ name: "mobile_list_elements_on_screen", arguments: { device: "harmony:MATE60" } });
+		const result: any = await client.callTool({ name: "mobile_long_press_on_screen_at_coordinates", arguments: { device: "harmony:MATE60", ref: "@h1e1", duration: 1200 } });
+		expect(result.isError).not.toBe(true);
+		expect(result.content[0].text).toContain("1200ms");
+		const stale: any = await client.callTool({ name: "mobile_click_on_screen_at_coordinates", arguments: { device: "harmony:MATE60", ref: "@h1e1" } });
+		expect(stale.isError).toBe(true);
+		expect(stale.content[0].text).toContain("stale");
+	});
 });
