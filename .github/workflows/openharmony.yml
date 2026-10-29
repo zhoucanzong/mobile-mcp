@@ -1,0 +1,30 @@
+name: OpenHarmony validation
+
+on:
+  push:
+    branches: [OpenHarmony]
+  pull_request:
+    branches: [OpenHarmony]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Build
+        run: npm run build
+      - name: Lint
+        run: npm run lint
+      # Phase one exercises mocked HDC/MCP behavior, not a physical phone.
+      - name: Unit and protocol tests
+        env:
+          MOBILEMCP_DISABLE_TELEMETRY: '1'
+        run: npm test -- --reporter=dot

@@ -17,6 +17,7 @@ import { Mobilecli } from "./mobilecli";
 import { MobileDevice } from "./mobile-device";
 import { validateOutputPath, validateFileExtension, withLowercaseScheme, writeOutputFile, createPrivateOutputPath, finishRecording } from "./utils";
 import { formatElements } from "./format-elements";
+import { HarmonyDeviceManager, HarmonyRobot, isHarmonyDevice } from "./harmony";
 
 type ScreenshotContent = { type: "text", text: string } | { type: "image", data: string, mimeType: string };
 
@@ -28,16 +29,17 @@ const DEVICE_LOG_FILTER_PATTERN = /^(pid|process|tag|level|subsystem|category|me
 const ALLOWED_SCREENSHOT_EXTENSIONS = [".png", ".jpg", ".jpeg"];
 const DEFAULT_SCREENSHOT_MAX_SIZE = 1024;
 const ALLOWED_RECORDING_EXTENSIONS = [".mp4"];
-const ALLOWED_APP_EXTENSIONS = [".apk", ".ipa", ".zip", ".app"];
+const ALLOWED_APP_EXTENSIONS = [".apk", ".ipa", ".zip", ".app", ".hap"];
 const LOGIN_PROMPT_TIMEOUT_MS = 15000;
 const NO_LOCAL_DEVICES_HINT =
-	"No local device, simulator or emulator is available. Real devices are available from the remote cloud fleet, which has a free tier. " +
+	"No local device, simulator or emulator is available. For HarmonyOS, check HDC_PATH, enable USB debugging and authorize this computer. " +
+	"Real iOS/Android devices are available from the remote cloud fleet, which has a free tier. " +
 	"Tell the user, and ask whether they want to use one. If they agree, call mobile_list_remote_devices.";
 
 interface MobilecliDevice {
 	id: string;
 	name: string;
-	platform: "android" | "ios";
+	platform: "android" | "ios" | "harmonyos";
 	type: "real" | "emulator" | "simulator";
 	version: string;
 	state: "online" | "offline";
@@ -46,10 +48,15 @@ interface MobilecliDevice {
 interface MobilecliDevicesResponse {
 	devices: MobilecliDevice[];
 	hint?: string;
+	warnings?: string[];
 }
 
-export const formatAvailableDevices = (devices: MobilecliDevice[]): string => {
+export const formatAvailableDevices = (devices: MobilecliDevice[], warnings: string[] = []): string => {
 	const out: MobilecliDevicesResponse = { devices };
+	if (warnings.length > 0) {
+		out.warnings = warnings;
+	}
+
 	if (devices.length === 0) {
 		out.hint = NO_LOCAL_DEVICES_HINT;
 	}
@@ -82,7 +89,17 @@ export const getSdkVersion = (): string => {
 	}
 };
 
-const SERVER_INSTRUCTIONS = `Drive a real or simulated iOS/Android device.
+const SERVER_INSTRUCTIONS = `Drive a real or simulated iOS/Android device, or a local HarmonyOS device via HDC.
+
+HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
+for these devices. Chinese UI text is preserved; text input requires UITest
+uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
+and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
+PNG screenshots, app management and URLs. Recording, crash reports, clipboard,
+GPS override, folding, custom-duration long press and setting orientation
+are not supported by this backend. Ask for a fresh UI snapshot after each
+action before using another ref. Do not claim a device action or Chinese
+input succeeded until you have checked the resulting screen.
 
 Start with mobile_list_available_devices and pass the chosen device id to every
 later call - there is no implicit "current device". Use a remote device only
@@ -103,7 +120,7 @@ over navigating through the UI. mobile_open_url only accepts http:// and
 https:// URLs unless the server was started with MOBILEMCP_ALLOW_UNSAFE_URLS=1,
 so do not rely on it for app deep links.`;
 
-export const createMcpServer = (): McpServer => {
+export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {}): McpServer => {
 
 	const server = new McpServer({
 		name: "mobile-mcp",
@@ -231,6 +248,7 @@ export const createMcpServer = (): McpServer => {
 	};
 
 	const mobilecli = new Mobilecli();
+	const harmonyManager = new HarmonyDeviceManager();
 	const activeRecordings = new Map<string, ActiveRecording>();
 	const agentVerifiedSimulators = new Set<string>();
 	const activeLoginProcesses: ChildProcess[] = [];
@@ -248,7 +266,7 @@ export const createMcpServer = (): McpServer => {
 	};
 
 	// cache per device id, saves ~0.2s (mobilecli --version + devices) on every tool call
-	const robotCache = new Map<string, Robot>();
+	const robotCache = options.robotCache ?? new Map<string, Robot>();
 
 	const getRobotFromDevice = (deviceId: string): Robot => {
 		const cached = robotCache.get(deviceId);
@@ -262,6 +280,14 @@ export const createMcpServer = (): McpServer => {
 	};
 
 	const createRobotFromDevice = (deviceId: string): Robot => {
+		if (isHarmonyDevice(deviceId)) {
+			const { devices } = harmonyManager.discover();
+			if (!devices.some(device => device.id === deviceId)) {
+				throw new ActionableError(`HarmonyOS device "${deviceId}" is not connected. Enable USB debugging, authorize this computer and call mobile_list_available_devices again`);
+			}
+
+			return new HarmonyRobot(deviceId);
+		}
 
 		// from now on, we must have mobilecli working
 		ensureMobilecliAvailable();
@@ -336,88 +362,117 @@ export const createMcpServer = (): McpServer => {
 	tool(
 		"mobile_list_available_devices",
 		"List Devices",
-		"List all available devices. This includes both physical mobile devices and mobile simulators and emulators. It returns both Android and iOS devices. " +
+		"List all available devices. This includes Android and iOS devices, simulators and emulators, and local HarmonyOS devices via HDC (ids start with harmony:). " +
 		"These are local devices already connected to this machine, ready to use immediately at no cost - for devices from the shared remote cloud fleet, use mobile_list_remote_devices instead.",
 		{},
 		{ readOnlyHint: true, openWorldHint: false },
 		async ({}, telemetry) => {
 
-			// from today onward, we must have mobilecli working
-			ensureMobilecliAvailable();
-
 			const devices: MobilecliDevice[] = [];
-			const legacyRobot = process.env.MOBILEMCP_LEGACY_ROBOT === "1";
+			const warnings: string[] = [];
+			let hdcAvailable = false;
+			try {
+				const discovery = harmonyManager.discover();
+				hdcAvailable = discovery.available;
+				devices.push(...discovery.devices);
+				telemetry.HarmonyCount = discovery.devices.length;
+			} catch (error: any) {
+				warnings.push(error.message);
+			}
 
-			if (legacyRobot) {
-				const iosManager = new IosManager();
-				const androidManager = new AndroidDeviceManager();
-
-				// Get Android devices with details
-				const androidDevices = androidManager.getConnectedDevicesWithDetails();
-				telemetry.AndroidCount = androidDevices.length;
-				for (const device of androidDevices) {
-					devices.push({
-						id: device.deviceId,
-						name: device.name,
-						platform: "android",
-						type: "emulator",
-						version: device.version,
-						state: "online",
-					});
+			// A HarmonyOS-only installation must work without mobilecli, adb or Xcode.
+			try {
+				ensureMobilecliAvailable();
+			} catch (error: any) {
+				if (!hdcAvailable) {
+					throw new ActionableError([error.message, ...warnings, "For HarmonyOS, install HDC and set HDC_PATH; then enable and authorize USB debugging."].join(" "));
 				}
 
-				// Get iOS physical devices with details
-				telemetry.IosRealCount = 0;
-				try {
-					const iosDevices = iosManager.listDevicesWithDetails();
-					telemetry.IosRealCount = iosDevices.length;
-					for (const device of iosDevices) {
+				warnings.push(error.message);
+				return formatAvailableDevices(devices, warnings);
+			}
+
+			const legacyRobot = process.env.MOBILEMCP_LEGACY_ROBOT === "1";
+
+			try {
+				if (legacyRobot) {
+					const iosManager = new IosManager();
+					const androidManager = new AndroidDeviceManager();
+
+					// Get Android devices with details
+					const androidDevices = androidManager.getConnectedDevicesWithDetails();
+					telemetry.AndroidCount = androidDevices.length;
+					for (const device of androidDevices) {
 						devices.push({
 							id: device.deviceId,
-							name: device.deviceName,
-							platform: "ios",
-							type: "real",
+							name: device.name,
+							platform: "android",
+							type: "emulator",
 							version: device.version,
 							state: "online",
 						});
 					}
-				} catch (error: any) {
-					// If go-ios is not available, silently skip
+
+					// Get iOS physical devices with details
+					telemetry.IosRealCount = 0;
+					try {
+						const iosDevices = iosManager.listDevicesWithDetails();
+						telemetry.IosRealCount = iosDevices.length;
+						for (const device of iosDevices) {
+							devices.push({
+								id: device.deviceId,
+								name: device.deviceName,
+								platform: "ios",
+								type: "real",
+								version: device.version,
+								state: "online",
+							});
+						}
+					} catch (error: any) {
+						// If go-ios is not available, silently skip
+					}
+
+					// Get iOS simulators from mobilecli, including offline ones so we can
+					// report how many are installed vs booted. only booted ones are returned.
+					const response = mobilecli.getDevices({
+						platform: "ios",
+						type: "simulator",
+						includeOffline: true,
+					});
+					telemetry.IosSimInstalledCount = 0;
+					telemetry.IosSimCount = 0;
+					if (response.status === "ok" && response.data && response.data.devices) {
+						const simulators = response.data.devices;
+						const booted = simulators.filter(device => device.state === "online");
+						telemetry.IosSimInstalledCount = simulators.length;
+						telemetry.IosSimCount = booted.length;
+						devices.push(...booted);
+					}
+				} else {
+					const response = mobilecli.getDevices({ includeOffline: true });
+					telemetry.AndroidCount = 0;
+					telemetry.IosRealCount = 0;
+					telemetry.IosSimInstalledCount = 0;
+					telemetry.IosSimCount = 0;
+					if (response.status === "ok" && response.data && response.data.devices) {
+						const availableDevices = response.data.devices.filter(device => device.state === "online");
+						telemetry.AndroidCount = availableDevices.filter(device => device.platform === "android").length;
+						telemetry.IosRealCount = availableDevices.filter(device => device.platform === "ios" && device.type === "real").length;
+						telemetry.IosSimInstalledCount = response.data.devices.filter(device => device.platform === "ios" && device.type === "simulator").length;
+						telemetry.IosSimCount = availableDevices.filter(device => device.platform === "ios" && device.type === "simulator").length;
+						devices.push(...availableDevices);
+					}
 				}
 
-				// Get iOS simulators from mobilecli, including offline ones so we can
-				// report how many are installed vs booted. only booted ones are returned.
-				const response = mobilecli.getDevices({
-					platform: "ios",
-					type: "simulator",
-					includeOffline: true,
-				});
-				telemetry.IosSimInstalledCount = 0;
-				telemetry.IosSimCount = 0;
-				if (response.status === "ok" && response.data && response.data.devices) {
-					const simulators = response.data.devices;
-					const booted = simulators.filter(device => device.state === "online");
-					telemetry.IosSimInstalledCount = simulators.length;
-					telemetry.IosSimCount = booted.length;
-					devices.push(...booted);
+			} catch (error: any) {
+				if (!hdcAvailable) {
+					throw error;
 				}
-			} else {
-				const response = mobilecli.getDevices({ includeOffline: true });
-				telemetry.AndroidCount = 0;
-				telemetry.IosRealCount = 0;
-				telemetry.IosSimInstalledCount = 0;
-				telemetry.IosSimCount = 0;
-				if (response.status === "ok" && response.data && response.data.devices) {
-					const availableDevices = response.data.devices.filter(device => device.state === "online");
-					telemetry.AndroidCount = availableDevices.filter(device => device.platform === "android").length;
-					telemetry.IosRealCount = availableDevices.filter(device => device.platform === "ios" && device.type === "real").length;
-					telemetry.IosSimInstalledCount = response.data.devices.filter(device => device.platform === "ios" && device.type === "simulator").length;
-					telemetry.IosSimCount = availableDevices.filter(device => device.platform === "ios" && device.type === "simulator").length;
-					devices.push(...availableDevices);
-				}
+
+				warnings.push(`Android/iOS discovery failed: ${error.message}`);
 			}
 
-			return formatAvailableDevices(devices);
+			return formatAvailableDevices(devices, warnings);
 		}
 	);
 
@@ -582,7 +637,7 @@ export const createMcpServer = (): McpServer => {
 		async ({ device }) => {
 			const robot = getRobotFromDevice(device);
 			if (!robot.getForegroundApp) {
-				throw new ActionableError("Getting the foreground app is not supported in legacy robot mode");
+				throw new ActionableError("Getting the foreground app is not supported by this device backend");
 			}
 
 			const app = await robot.getForegroundApp();
@@ -597,7 +652,7 @@ export const createMcpServer = (): McpServer => {
 		"Launch an app on mobile device. Use this to open a specific app. You can find the package name of the app by calling mobile_list_apps.",
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
-			packageName: z.string().describe("The package name of the app to launch"),
+			packageName: z.string().describe("The package name of the app to launch. On HarmonyOS, use bundleName or bundleName/AbilityName (e.g. com.example.app/EntryAbility)"),
 			locale: z.string().optional().describe("Comma-separated BCP 47 locale tags to launch the app with (e.g., fr-FR,en-GB)"),
 		},
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
@@ -630,7 +685,7 @@ export const createMcpServer = (): McpServer => {
 		"Install an app on mobile device",
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
-			path: z.string().describe("The path to the app file to install. For iOS simulators, provide a .zip file or a .app directory. For Android provide an .apk file. For iOS real devices provide an .ipa file"),
+			path: z.string().describe("The path to the app file to install. For iOS simulators, provide a .zip file or a .app directory. For Android provide an .apk file. For iOS real devices provide an .ipa file. For HarmonyOS provide a signed .hap file"),
 		},
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 		async ({ device, path }) => {
@@ -691,7 +746,7 @@ export const createMcpServer = (): McpServer => {
 			const robot = getRobotFromDevice(device);
 			if (ref !== undefined) {
 				if (!robot.tapByRef) {
-					throw new ActionableError("Clicking by ref is not supported in legacy robot mode");
+					throw new ActionableError("Clicking by ref is not supported by this device backend");
 				}
 
 				await robot.tapByRef(ref);
@@ -722,7 +777,7 @@ export const createMcpServer = (): McpServer => {
 			const robot = getRobotFromDevice(device);
 			if (ref !== undefined) {
 				if (!robot.doubleTapByRef) {
-					throw new ActionableError("Double-tapping by ref is not supported in legacy robot mode");
+					throw new ActionableError("Double-tapping by ref is not supported by this device backend");
 				}
 
 				await robot.doubleTapByRef(ref);
@@ -747,15 +802,29 @@ export const createMcpServer = (): McpServer => {
 			x: z.coerce.number().min(0).optional().describe("The x coordinate to long press on the screen, in pixels. Required unless ref is given"),
 			y: z.coerce.number().min(0).optional().describe("The y coordinate to long press on the screen, in pixels. Required unless ref is given"),
 			ref: z.string().optional().describe("Element ref from mobile_list_elements_on_screen, e.g. \"@e5\". Takes precedence over x,y"),
-			duration: z.coerce.number().min(1).max(10000).optional().describe("Duration of the long press in milliseconds. Defaults to 500ms."),
+			duration: z.coerce.number().min(1).max(10000).optional().describe("Duration of the long press in milliseconds. Defaults to 500ms. On HarmonyOS omit this parameter to use the native duration; custom duration is not supported."),
 		},
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 		async ({ device, x, y, ref, duration }) => {
 			const robot = getRobotFromDevice(device);
+			if (duration === undefined && robot.longPressDefault) {
+				if (ref !== undefined && robot.longPressDefaultByRef) {
+					await robot.longPressDefaultByRef(ref);
+					return `Long pressed on element ${ref} using the platform default duration`;
+				}
+
+				if (x === undefined || y === undefined) {
+					throw new ActionableError("Either ref or both x and y must be provided");
+				}
+
+				await robot.longPressDefault(x, y);
+				return `Long pressed on screen at coordinates: ${x}, ${y} using the platform default duration`;
+			}
+
 			const pressDuration = duration ?? 500;
 			if (ref !== undefined) {
 				if (!robot.longPressByRef) {
-					throw new ActionableError("Long pressing by ref is not supported in legacy robot mode");
+					throw new ActionableError("Long pressing by ref is not supported by this device backend");
 				}
 
 				await robot.longPressByRef(ref, pressDuration);
@@ -797,6 +866,7 @@ export const createMcpServer = (): McpServer => {
 				"The button to press, in upper case. Supported buttons:",
 				"Android: HOME, BACK, VOLUME_UP, VOLUME_DOWN, ENTER, BACKSPACE, APP_SWITCH, POWER, DPAD_CENTER, DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT",
 				"iOS: HOME, VOLUME_UP, VOLUME_DOWN, ENTER, LOCK",
+				"HarmonyOS: HOME, BACK, VOLUME_UP, VOLUME_DOWN, ENTER, BACKSPACE, POWER",
 				"BACKSPACE deletes the character before the cursor, APP_SWITCH opens the recent apps, POWER turns the screen on or off, LOCK locks the screen, and the DPAD buttons move focus on Android TV.",
 			].join("\n")),
 		},
@@ -1023,7 +1093,7 @@ export const createMcpServer = (): McpServer => {
 		async ({ device, posture, angle }) => {
 			const robot = getRobotFromDevice(device);
 			if (!robot.fold) {
-				throw new ActionableError("Folding the device is not supported in legacy robot mode");
+				throw new ActionableError("Folding the device is not supported by this device backend");
 			}
 
 			if (posture !== undefined && angle !== undefined) {
@@ -1057,7 +1127,7 @@ export const createMcpServer = (): McpServer => {
 		async ({ device, latitude, longitude }) => {
 			const robot = getRobotFromDevice(device);
 			if (!robot.setLocation || !robot.clearLocation) {
-				throw new ActionableError("Setting location is not supported in legacy robot mode");
+				throw new ActionableError("Setting location is not supported by this device backend");
 			}
 
 			if (latitude === undefined && longitude === undefined) {
@@ -1086,7 +1156,7 @@ export const createMcpServer = (): McpServer => {
 		async ({ device, text }) => {
 			const robot = getRobotFromDevice(device);
 			if (!robot.getClipboard || !robot.setClipboard) {
-				throw new ActionableError("Clipboard is not supported in legacy robot mode");
+				throw new ActionableError("Clipboard is not supported by this device backend");
 			}
 
 			if (text === undefined) {
@@ -1117,7 +1187,7 @@ export const createMcpServer = (): McpServer => {
 
 			const robot = getRobotFromDevice(device);
 			if (!robot.getLogs) {
-				throw new ActionableError("Device logs are not supported in legacy robot mode");
+				throw new ActionableError("Device logs are not supported by this device backend");
 			}
 
 			const logs = await robot.getLogs(limit, filter, DEVICE_LOG_TIMEOUT_MS);
@@ -1157,6 +1227,10 @@ export const createMcpServer = (): McpServer => {
 		},
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 		async ({ device, output, timeLimit }) => {
+			if (isHarmonyDevice(device)) {
+				throw new ActionableError("Screen recording is not supported by the HarmonyOS HDC backend");
+			}
+
 			if (output) {
 				validateFileExtension(output, ALLOWED_RECORDING_EXTENSIONS, "start_screen_recording");
 				validateOutputPath(output);
@@ -1215,6 +1289,10 @@ export const createMcpServer = (): McpServer => {
 		},
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 		async ({ device }) => {
+			if (isHarmonyDevice(device)) {
+				throw new ActionableError("Screen recording is not supported by the HarmonyOS HDC backend");
+			}
+
 			const recording = activeRecordings.get(device);
 			if (!recording) {
 				throw new ActionableError(`No active recording found for device "${device}". Start a recording first with mobile_start_screen_recording.`);
@@ -1264,6 +1342,10 @@ export const createMcpServer = (): McpServer => {
 		},
 		{ readOnlyHint: true, openWorldHint: true },
 		async ({ device }) => {
+			if (isHarmonyDevice(device)) {
+				throw new ActionableError("Crash reports are not supported by the HarmonyOS HDC backend");
+			}
+
 			ensureMobilecliAvailable();
 			const response = mobilecli.crashesList(device);
 			return JSON.stringify(response.data);
@@ -1280,6 +1362,10 @@ export const createMcpServer = (): McpServer => {
 		},
 		{ readOnlyHint: true, openWorldHint: true },
 		async ({ device, id }) => {
+			if (isHarmonyDevice(device)) {
+				throw new ActionableError("Crash reports are not supported by the HarmonyOS HDC backend");
+			}
+
 			ensureMobilecliAvailable();
 			const response = mobilecli.crashesGet(device, id);
 			return response.data.content;

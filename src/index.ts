@@ -7,6 +7,7 @@ import { createMcpServer, getAgentVersion, getSdkVersion } from "./server";
 import { error } from "./logger";
 import { Request, Response } from "express";
 import { program } from "commander";
+import type { Robot } from "./robot";
 
 type InstallOptions = { yes?: boolean };
 
@@ -55,7 +56,10 @@ const startHttpServer = async (host: string, port: number) => {
 	// from the same factory — the same per-request model as before.
 	// onerror keeps request-handling and transport failures in the application
 	// log (the SDK otherwise answers HTTP 500 silently).
-	const handler = createMcpHandler(() => createMcpServer(), { onerror: logMcpError });
+	// HTTP creates a protocol server per request. Keep device snapshots/ref
+	// generations across those requests, just as a stdio connection does.
+	const robotCache = new Map<string, Robot>();
+	const handler = createMcpHandler(() => createMcpServer({ robotCache }), { onerror: logMcpError });
 	const node = toNodeHandler(handler, { onerror: logMcpError });
 
 	app.post("/mcp", (req: Request, res: Response) => {

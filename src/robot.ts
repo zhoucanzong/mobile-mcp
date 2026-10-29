@@ -37,7 +37,7 @@ export interface ScreenElement {
 	identifier?: string;
 	rect: ScreenElementRect;
 
-	// short reference from the latest ui dump (e.g. "@e5"), mobilecli only
+	// Short reference from the latest UI snapshot (e.g. "@e5" or "@h1e5").
 	ref?: string;
 
 	// currently only on android tv
@@ -174,7 +174,7 @@ export interface Robot {
 	tap(x: number, y: number): Promise<void>;
 
 	/**
-	 * Tap on the center of an element by its ref from the latest getElementsOnScreen (e.g. "@e5"). mobilecli only.
+	 * Tap on the center of an element by its ref from the latest getElementsOnScreen.
 	 */
 	tapByRef?(ref: string): Promise<void>;
 
@@ -184,7 +184,7 @@ export interface Robot {
 	doubleTap(x: number, y: number): Promise<void>;
 
 	/**
-	 * Double tap on the center of an element by its ref from the latest getElementsOnScreen (e.g. "@e5"). mobilecli only.
+	 * Double tap on the center of an element by its ref from the latest getElementsOnScreen.
 	 */
 	doubleTapByRef?(ref: string): Promise<void>;
 
@@ -195,6 +195,10 @@ export interface Robot {
 	 * @param duration - Duration of the long press in milliseconds
 	 */
 	longPress(x: number, y: number, duration: number): Promise<void>;
+
+	/** Long press with the platform's own duration when it cannot be configured. */
+	longPressDefault?(x: number, y: number): Promise<void>;
+	longPressDefaultByRef?(ref: string): Promise<void>;
 
 	/**
 	 * Long press on the center of an element by its ref from the latest getElementsOnScreen (e.g. "@e5"). mobilecli only.

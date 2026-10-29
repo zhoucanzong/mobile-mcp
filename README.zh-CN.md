@@ -84,6 +84,9 @@ npx @mobilenext/mobile-mcp@latest install
 | iOS 真机 | ✅ | 通过 USB 连接并已信任的设备 |
 | Android 仿真器 | ✅ | Android SDK 以及运行中的仿真器 (`adb`) |
 | Android 真机 | ✅ | `adb`，并已启用并授权 USB 调试 |
+| 原生鸿蒙真机（本地改造） | 实验性，待真机验收 | HDC + USB 调试 + UITest；参见[鸿蒙接入与中文支持](docs/harmonyos.md) |
+
+本地源码新增的鸿蒙后端支持设备发现、界面读取、点击、双击、原生长按、滑动、输入、PNG 截图和基础应用管理，尚未发布到 npm。中文读取使用 Unicode；中文输入受设备后端影响，需要在目标手机验证。工具说明和多数错误提示仍是英文。[完整范围与验收步骤](docs/harmonyos.md)
 
 ## 🔧 可用的 MCP 工具
 
