@@ -139,6 +139,17 @@ npx @mobilenext/mobile-mcp@latest install
 - **`mobile_get_crash`** - ID を指定してクラッシュレポートの全文を取得します
 - **`mobile_batch_commands`** - 複数のツールを 1 回の呼び出しで順番に実行します（例: クリック、入力、クリック）。最後に画面上の要素を一覧表示することもできます
 
+### 待機・結果確認・拡張ジェスチャー
+
+- **`mobile_drag_on_screen`** - HarmonyOS：長押しして開始点から終了点へドラッグ
+- **`mobile_pinch_on_screen`** - HarmonyOS：2 本の指を同時に動かしてピンチ操作
+- **`mobile_perform_gestures`** - HarmonyOS：タップ、長押し、ドラッグ、ピンチ、待機を順番に実行
+- **`mobile_wait_for_condition`** - 要素、前面アプリ、画面方向の条件を期限付きで待機
+- **`mobile_assert_condition`** - 画面やアプリの状態を確認し、不一致をツールエラーとして返す
+- **`mobile_run_workflow`** - 条件分岐、上限付きループ、要素の再取得、実行後の確認と明示的な再試行
+
+新しいツールは失敗時にスクリーンショット、ログ、実行記録を保存できます。実装と模擬テスト済みで、実機検証は次の段階で行います。[パラメータ・使用例・制限・実機検証項目](docs/automation.md)を参照してください。
+
 ## 🏗️ Mobile MCP のアーキテクチャ
 
 <p align="center">

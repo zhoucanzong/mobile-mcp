@@ -141,6 +141,17 @@ npx @mobilenext/mobile-mcp@latest install
 - **`mobile_get_crash`** - 按 ID 获取崩溃报告的完整内容
 - **`mobile_batch_commands`** - 在一次调用中按顺序运行多个工具（例如点击、输入、点击），可选择在最后列出屏幕元素
 
+### 等待、结果检查与扩展手势
+
+- **`mobile_drag_on_screen`** - 鸿蒙：按住起点后拖到终点
+- **`mobile_pinch_on_screen`** - 鸿蒙：同时移动两根手指进行向内或向外缩放
+- **`mobile_perform_gestures`** - 鸿蒙：按顺序组合点击、长按、拖拽、缩放与停顿
+- **`mobile_wait_for_condition`** - 等待元素出现或消失、前台应用或屏幕方向，支持超时与持续匹配检查
+- **`mobile_assert_condition`** - 立即检查界面、应用或方向，不符合预期时返回错误
+- **`mobile_run_workflow`** - 执行有上限的条件分支和循环，支持重新定位元素、操作后验证及显式重试
+
+新工具失败时可自动保存截图、设备日志和执行记录。目前已实现并以模拟路径测试，真机验证统一留到下一阶段。参见[参数、示例、重试语义及真机验收清单](docs/automation.md)。
+
 ## 🏗️ Mobile MCP 架构
 
 <p align="center">

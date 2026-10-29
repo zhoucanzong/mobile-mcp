@@ -44,6 +44,8 @@ npm run build
 | 点击、双击 | `uitest uiInput click/doubleClick` | 支持坐标或最近一次读取的元素引用 |
 | 原生长按 | `uitest uiInput longClick` | 支持坐标或元素引用；省略 `duration` 用系统默认时长，显式时长使用 uinput 按下/等待/抬起 |
 | 滑动 | `uitest uiInput swipe` | 坐标限制在截图给出的屏幕尺寸内 |
+| 拖拽、双指缩放、组合手势 | uinput 触屏拖拽与同时多指移动；组合点击/长按/停顿 | 检查命令能力与屏幕边界；详细参数见[扩展说明](automation.md)，真机待验证 |
+| 等待、检查与流程编排 | 元素/应用/方向条件、if、repeat、显式重试 | 有超时及执行次数上限；失败时可保存截图、日志和报告 |
 | 文字输入 | `uitest uiInput text` | 需要 API 18+ 对应命令；输入框须先获得焦点，实际写入需回读验证 |
 | 按键 | `uitest uiInput keyEvent` | HOME、BACK、ENTER、BACKSPACE、POWER、VOLUME_UP、VOLUME_DOWN |
 | 截图、屏幕尺寸、当前方向 | `uitest screenCap` | 按 UITest、snapshot_display、screenshot 顺序尝试；返回实际 PNG/JPEG，暂不缩放或转换格式，文件扩展名须匹配 |
@@ -86,6 +88,9 @@ npm run build
 | `mobile_open_url` | 已实现 |
 | `mobile_take_screenshot` | 已实现：原始 PNG/JPEG，按实际内容标记格式 |
 | `mobile_save_screenshot` | 已实现：保存实际 PNG/JPEG，格式与扩展名不匹配时报错 |
+| `mobile_drag_on_screen` / `mobile_pinch_on_screen` / `mobile_perform_gestures` | 已实现：拖拽、同时双指缩放、顺序组合手势；要求设备 uinput 对应能力，真机待验证 |
+| `mobile_wait_for_condition` / `mobile_assert_condition` | 已实现：中文元素选择、前台应用和方向检查、轮询等待与失败资料保存 |
+| `mobile_run_workflow` | 已实现：条件分支、有界循环、重新定位、操作后检查、显式重试及失败历史；见[参数与示例](automation.md) |
 | `mobile_batch_commands` | 已实现：复用统一工具回调 |
 | `mobile_get_foreground_app` | 已实现：默认显示屏焦点窗口 ID 与 UI 树包名、Ability 对应，焦点变化或对应不唯一时报错 |
 | `mobile_set_orientation` | 已实现：开发者模式显示服务方向注入，并通过屏幕宽高确认结果；不修改旋转锁定 |

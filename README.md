@@ -150,6 +150,17 @@ This local source extension adds a HarmonyOS HDC backend; it is not included in 
 - **`mobile_get_crash`** - Get the full content of a crash report by its ID
 - **`mobile_batch_commands`** - Run multiple tools in sequence in a single call (e.g. click, type, click), optionally listing screen elements at the end
 
+### Verified Workflows and Extended Gestures
+
+- **`mobile_drag_on_screen`** - HarmonyOS: hold and drag between two screen coordinates
+- **`mobile_pinch_on_screen`** - HarmonyOS: simultaneous two-finger zoom in or out
+- **`mobile_perform_gestures`** - HarmonyOS: combine taps, holds, drags, pinches and pauses in order
+- **`mobile_wait_for_condition`** - Wait for UI elements, foreground app or orientation, with timeout and stability checks
+- **`mobile_assert_condition`** - Check the current UI/app/orientation and report mismatches as tool errors
+- **`mobile_run_workflow`** - Run bounded conditional flows and loops, with fresh element targets, postconditions and explicit retries
+
+New tools can save screenshots, device logs and an execution report on failure. Implemented and mock-tested; real-device validation remains pending. See [parameters, examples, retry semantics and device acceptance checks](docs/automation.md).
+
 ## 🏗️ Mobile MCP Architecture
 
 <p align="center">

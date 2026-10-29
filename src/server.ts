@@ -1,3 +1,4 @@
+import { registerAutomationTools } from "./automation-tools";
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import fs from "node:fs";
@@ -111,6 +112,12 @@ Read the screen with mobile_list_elements_on_screen, not screenshots: it returns
 refs, coordinates and labels, and tapping by ref survives layout differences
 between devices. Fall back to mobile_take_screenshot only for elements missing
 from the hierarchy, or to judge visual appearance.
+
+For verified flows, use mobile_run_workflow with fresh target selectors and expect
+postconditions. Use mobile_wait_for_condition for asynchronous UI changes and
+mobile_assert_condition for immediate result checks. Retry actions only when
+repeating their side effects is intended. HarmonyOS also supports drag, pinch
+and sequences through mobile_perform_gestures when the device advertises support.
 
 Each call is a device round-trip. Group known sequences (tap, type, tap) into
 mobile_batch_commands instead of issuing them one at a time.
@@ -1416,6 +1423,8 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 			return response.data.content;
 		}
 	);
+
+	registerAutomationTools(tool, getRobotFromDevice, toolCallbacks);
 
 	// mobile_take_screenshot returns an image, which the text result of a batch cannot carry
 	const batchableToolNames = [...toolCallbacks.keys()].filter(name => name !== "mobile_take_screenshot");

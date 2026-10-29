@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { isIP } from "node:net";
+import { Gesture, gestureSequenceSchema, validateGestureBounds, touchHelp, checkGestureSupport, runNativeGesture } from "./harmony-gestures";
 import { Hdc, validateHdcTarget } from "./hdc";
 import { PNG } from "./png";
 import { getJpegDimensions } from "./jpeg";
@@ -344,6 +345,33 @@ export class HarmonyRobot implements Robot {
 			}
 
 			throw error;
+		}
+	}
+
+	public async performGestures(input: Gesture[]): Promise<void> {
+		const steps = gestureSequenceSchema.parse(input);
+		validateGestureBounds(steps, await this.getScreenSize());
+		if (steps.some(step => ["drag", "pinch", "hold"].includes(step.kind))) {
+			checkGestureSupport(steps, touchHelp(this.hdc, this.target));
+		}
+		for (let i = 0; i < steps.length; i++) {
+			const step = steps[i];
+			try {
+				// Recheck after preceding gestures may have rotated/resized the display.
+				validateGestureBounds([step], await this.getScreenSize());
+				this.invalidateRefs();
+				if (step.kind === "pause") {
+					await new Promise(resolve => setTimeout(resolve, step.durationMs));
+				} else if (step.kind === "tap") {
+					await this.tap(step.point.x, step.point.y);
+				} else if (step.kind === "hold") {
+					await this.longPress(step.point.x, step.point.y, step.durationMs);
+				} else {
+					runNativeGesture(this.hdc, this.target, step);
+				}
+			} catch (error: any) {
+				throw new ActionableError(`Gesture ${i + 1}/${steps.length} (${step.kind}) failed; earlier gestures may have run: ${error.message}`);
+			}
 		}
 	}
 
