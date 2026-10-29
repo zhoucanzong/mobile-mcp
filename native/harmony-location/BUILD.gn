@@ -1,0 +1,19 @@
+import("//build/ohos.gni")
+
+# Build this component in the platform tree, where locator_sdk is available.
+ohos_executable("mobile-mcp-location") {
+  sources = [ "main.cpp" ]
+  include_dirs = [ "//base/location/location/interfaces/inner_api/include" ]
+  deps = [
+    "//base/location/location/frameworks/native/locator_sdk:locator_sdk",
+    "//base/location/location/frameworks/location_common/common:lbsservice_common",
+  ]
+  external_deps = [
+    "ipc:ipc_core",
+    "samgr:samgr_proxy",
+  ]
+  install_enable = true
+  install_images = [ "system" ]
+  subsystem_name = "location"
+  part_name = "location"
+}

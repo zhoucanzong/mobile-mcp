@@ -33,3 +33,8 @@ jobs:
           cmake -S native/harmony-recorder -B /tmp/mobile-mcp-recorder-tests -DMOBILE_MCP_HOST_TESTS=ON
           cmake --build /tmp/mobile-mcp-recorder-tests
           ctest --test-dir /tmp/mobile-mcp-recorder-tests --output-on-failure
+      - name: Native location lifecycle tests
+        run: |
+          cmake -S native/harmony-location -B /tmp/mobile-mcp-location-tests
+          cmake --build /tmp/mobile-mcp-location-tests
+          ctest --test-dir /tmp/mobile-mcp-location-tests --output-on-failure

@@ -91,7 +91,7 @@ npm run build
 | `mobile_set_orientation` | 已实现：开发者模式显示服务方向注入，并通过屏幕宽高确认结果；不修改旋转锁定 |
 | `mobile_clipboard` | 已实现：系统纯文本剪贴板读写、清空与回读校验；要求 ohos-pasteboard 及读取权限 |
 | `mobile_get_device_logs` | 已实现：HiLog 缓冲区及实时流，NDJSON，筛选及 30 秒固定期限 |
-| `mobile_set_location` | 待适配，明确返回不支持 |
+| `mobile_set_location` | 设备端模拟定位组件及状态测试已实现；MCP 接入、平台链接和系统授权仍待完成 |
 | `mobile_fold_device` | 已实现：支持设备上的 named posture 状态模拟并核对返回值；不支持任意铰链角度，非折叠设备不能提供该能力 |
 | `mobile_start_screen_recording` / `mobile_stop_screen_recording` | 原生组件及 MCP 协议已实现、模拟验证通过；需 HARMONY_RECORDER_PATH，SDK 链接和真机授权仍待验证 |
 | `mobile_list_crashes` / `mobile_get_crash` | 已实现：系统故障日志目录中的 C++、JS、Rust、仓颉报告；要求设备授权读取目录 |
