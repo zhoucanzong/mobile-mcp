@@ -5,7 +5,7 @@ import path from "node:path";
 import { Hdc, validateHdcTarget } from "./hdc";
 import { PNG } from "./png";
 import { collectHarmonyLogs } from "./harmony-logs";
-import { ActionableError, Button, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
+import { ActionableError, Button, ForegroundApp, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
 
 export const HARMONY_DEVICE_PREFIX = "harmony:";
 export const isHarmonyDevice = (id: string): boolean => id.startsWith(HARMONY_DEVICE_PREFIX);
@@ -61,6 +61,45 @@ export class HarmonyDeviceManager {
 const record = (value: unknown): Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const string = (value: unknown): string | undefined => typeof value === "string" && value !== "" ? value : undefined;
 const state = (value: unknown): boolean | undefined => value === true || value === "true" ? true : value === false || value === "false" ? false : undefined;
+
+export const parseHarmonyFocus = (dump: string): string => {
+	// WindowManager's default-display focus, not the per-display summary rows.
+	const matches = [...dump.matchAll(/^\s*Focus window:\s*(-?\d+)\s*$/gm)];
+	if (matches.length !== 1 || !/^\d+$/.test(matches[0][1])) {
+		throw new ActionableError("Cannot identify the focused HarmonyOS window. Check WindowManagerService dump permission and unlock the device");
+	}
+
+	return matches[0][1];
+};
+
+export const harmonyForegroundFromLayout = (layout: unknown, windowId: string): ForegroundApp => {
+	const candidates = new Map<string, ForegroundApp>();
+	const visit = (value: unknown) => {
+		const node = record(value);
+		const attrs = record(node.attributes);
+		const bundle = string(attrs.bundleName);
+		if (bundle && String(attrs.hostWindowId) === windowId) {
+			const ability = string(attrs.abilityName);
+			const app: ForegroundApp = { packageName: bundle, appName: bundle, ...(ability ? { activity: ability } : {}) };
+			candidates.set(JSON.stringify(app), app);
+		}
+
+		if (Array.isArray(node.children)) {
+			node.children.forEach(visit);
+		}
+	};
+	if (Array.isArray(layout)) {
+		layout.forEach(visit);
+	} else {
+		visit(layout);
+	}
+
+	if (candidates.size !== 1) {
+		throw new ActionableError("The focused HarmonyOS window cannot be mapped uniquely to an app in the UI tree. Refresh the screen and retry");
+	}
+
+	return [...candidates.values()][0];
+};
 
 const bounds = (value: unknown): ScreenElementRect | undefined => {
 	if (typeof value !== "string") {
@@ -185,6 +224,17 @@ export class HarmonyRobot implements Robot {
 		this.snapshot = JSON.stringify(layout);
 		this.refs = new Map(elements.map(element => [element.ref!, element]));
 		return elements;
+	}
+
+	public async getForegroundApp(): Promise<ForegroundApp> {
+		const focus = () => parseHarmonyFocus(this.hdc.shell(this.target, ["hidumper", "-s", "WindowManagerService", "-a", "-a"]));
+		const before = focus();
+		const layout = this.readLayout();
+		if (focus() !== before) {
+			throw new ActionableError("HarmonyOS focus changed during inspection. Retry mobile_get_foreground_app");
+		}
+
+		return harmonyForegroundFromLayout(layout, before);
 	}
 
 	private resolveRef(ref: string): ScreenElementRect {

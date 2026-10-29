@@ -95,7 +95,7 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG screenshots, HiLog device logs, app management and URLs. Recording, crash reports, clipboard,
+PNG screenshots, HiLog device logs, focused app inspection, app management and URLs. Recording, crash reports, clipboard,
 GPS override, folding, custom-duration long press and setting orientation
 are not supported by this backend. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
@@ -629,7 +629,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 	tool(
 		"mobile_get_foreground_app",
 		"Get Foreground App",
-		"Get the app currently in the foreground on the device, including the focused activity class on Android or view controller class on iOS when available. Use this to verify which app or screen you are on before interacting with it.",
+		"Get the app currently in the foreground on the device, including the focused activity class on Android, view controller class on iOS, or Ability on HarmonyOS when available. HarmonyOS maps the default-display focused window to its UI-tree bundle and fails if the mapping is missing or ambiguous. Use this to verify which app or screen you are on before interacting with it.",
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you.")
 		},

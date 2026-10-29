@@ -48,13 +48,14 @@ npm run build
 | 按键 | `uitest uiInput keyEvent` | HOME、BACK、ENTER、BACKSPACE、POWER、VOLUME_UP、VOLUME_DOWN |
 | 截图、屏幕尺寸、当前方向 | `uitest screenCap` | 返回原始 PNG；暂不缩放，不转换 JPEG，保存时使用 `.png` |
 | 设备日志 | `hilog -v epoch` | 先返回已有缓冲区，再持续读取；支持 pid/tag/level/subsystem(domain)/message 筛选，30 秒固定期限，最多 8 MiB；不支持 process/category 筛选 |
+| 前台应用 | WindowManagerService 焦点输出 + UITest 界面树 | 默认显示屏；返回焦点窗口所属包和可用的 Ability；无法对应的系统窗口、权限不足、缺失元数据时明确报错 |
 | 应用列表 | `bm dump -a` | 应用名当前使用 bundleName |
 | 启动、终止应用 | `aa start` / `aa force-stop` | 显式启动可使用 `bundleName/AbilityName`；不假设所有应用入口都叫 EntryAbility |
 | 安装、卸载 | `bm install` / `bm uninstall` | 安装仅接受 `.hap`；签名、设备授权及系统安装限制仍然生效 |
 | 打开网址 | `aa start -A ohos.want.action.viewData -U` | 上层仍默认仅允许 HTTP/HTTPS |
 | 批量执行 | 复用 `mobile_batch_commands` | 使用元素引用的步骤之间需要重新读取元素，或使用已知坐标 |
 
-暂不支持：自定义时长长按、设置屏幕方向、前台应用查询、剪贴板工具、定位覆盖、折叠、录屏和崩溃报告。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
+暂不支持：自定义时长长按、设置屏幕方向、剪贴板工具、定位覆盖、折叠、录屏和崩溃报告。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
 
 每次操作后会清除鸿蒙元素引用；按引用操作前还会重新读取布局。如果布局与引用来自的快照不同，会要求重新读取元素。界面持续变化时，可读取新快照后根据坐标操作；操作与布局校验之间仍可能发生变化。stdio 连接和 HTTP 请求均保留设备引用上下文；共享设备的客户端仍需协调操作，同一设备没有并发操作隔离。
 
@@ -85,7 +86,7 @@ npm run build
 | `mobile_take_screenshot` | 已实现：原始 PNG |
 | `mobile_save_screenshot` | 已实现：保存 `.png`，不伪装为 JPEG |
 | `mobile_batch_commands` | 已实现：复用统一工具回调 |
-| `mobile_get_foreground_app` | 待适配，明确返回不支持 |
+| `mobile_get_foreground_app` | 已实现：默认显示屏焦点窗口 ID 与 UI 树包名、Ability 对应，焦点变化或对应不唯一时报错 |
 | `mobile_set_orientation` | 待适配，明确返回不支持 |
 | `mobile_clipboard` | 待适配，明确返回不支持；不等同于 UITest 内部输入机制 |
 | `mobile_get_device_logs` | 已实现：HiLog 缓冲区及实时流，NDJSON，筛选及 30 秒固定期限 |
@@ -126,3 +127,11 @@ npm run build
 - [bm 工具](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/tools/bm-tool.md)
 
 日志接口依据：[OpenHarmony HiLog](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/dfx/hilog.md)、[华为终端命令说明](https://consumer.huawei.com/cn/support/content/zh-cn16083991/)。日志解析保留不能识别的原始行；带字段筛选时，不具备该字段的行不会命中。
+
+前台应用查询的源码依据（固定版本）：
+
+- [窗口管理器输出默认显示屏的 Focus window](https://github.com/openharmony/window_window_manager/blob/8b0d8fe1b973d865904c942c286b3d2a3b9b08e7/window_scene/session_manager/src/scene_session_manager.cpp#L9073)
+- [UITest 写入窗口 bundleName 和 abilityName](https://github.com/openharmony/testfwk_arkxtest/blob/f59296c77aac5037a9335c317af58de3a0c22ecb/uitest/core/ui_driver.cpp#L114)
+- [UITest 属性 hostWindowId](https://github.com/openharmony/testfwk_arkxtest/blob/f59296c77aac5037a9335c317af58de3a0c22ecb/uitest/core/ui_model.h#L101)
+
+焦点在界面读取前后各查询一次，减少应用切换产生的错配；这不是系统级原子快照。键盘、权限弹窗等系统窗口拿到焦点时，不会猜测背后的业务应用；仍需要第二阶段验证商业鸿蒙系统输出的兼容性。

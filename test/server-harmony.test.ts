@@ -163,7 +163,6 @@ test("batches coordinate tap, Chinese input and submit through HDC", async () =>
 test("unsupported HarmonyOS tools return errors instead of falling through to mobilecli", async () => {
 	await withClient(async client => {
 		const cases = [
-			{ name: "mobile_get_foreground_app", args: {} },
 			{ name: "mobile_set_orientation", args: { orientation: "landscape" } },
 			{ name: "mobile_fold_device", args: { posture: "open" } },
 			{ name: "mobile_set_location", args: {} },
@@ -251,5 +250,26 @@ test("uses the native long-press duration only when duration was omitted", async
 		const custom: any = await client.callTool({ name: "mobile_long_press_on_screen_at_coordinates", arguments: { device: "harmony:MATE60", x: 20, y: 30, duration: 500 } });
 		expect(custom.isError).toBe(true);
 		expect(custom.content[0].text).toContain("Custom-duration");
+	});
+});
+
+
+test("reports the focused HarmonyOS bundle and Ability over MCP", async () => {
+	const original = Hdc.prototype.shell;
+	Hdc.prototype.shell = function(target, args) {
+		if (args[0] === "hidumper") {
+			return "Focus window: 91\n";
+		}
+
+		if (args[0] === "cat") {
+			return JSON.stringify({ attributes: { hostWindowId: "91", bundleName: "com.example.notes", abilityName: "EntryAbility" } });
+		}
+
+		return original.call(this, target, args);
+	};
+	await withClient(async client => {
+		const result: any = await client.callTool({ name: "mobile_get_foreground_app", arguments: { device: "harmony:MATE60" } });
+		expect(result.isError).not.toBe(true);
+		expect(result.content[0].text).toBe("Foreground app: com.example.notes (com.example.notes), activity: EntryAbility");
 	});
 });
