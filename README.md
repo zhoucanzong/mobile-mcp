@@ -8,6 +8,8 @@ This server allows Agents and LLMs to interact with native iOS, Android, and Har
 
 > **HarmonyOS / OpenHarmony on this branch:** build and run this repository locally using the [setup guide](docs/harmonyos.md). The upstream npm quick-install commands below do not include this adapter. Hardware validation is pending. Native recording requires a device-SDK-built helper; mock location requires a system-authorized platform component. Platform limits are listed in the capability matrix.
 
+Screenshot scaling, PNG/JPEG conversion and JPEG quality now run on the host. App lists use resolved system labels when available and explicitly report bundle-name fallbacks. Directional and recent-app keycodes are implemented; device responses remain unverified. See the [tool/parameter comparison](docs/platform-parity.md) and [capability checks and unified acceptance runner](docs/harmonyos-acceptance.md). The runner validates plans without a phone by default; `--execute` is required for device actions.
+
 Phase-one source adaptation and simulation acceptance is complete. See the [verification record](docs/harmonyos-phase1-verification.md); device execution and the experimental system-level location authorization remain for the next stage.
 
 **Works with Claude Code, Codex, Gemini, GitHub Copilot, Antigravity** — or any MCP-compatible client.
@@ -105,6 +107,7 @@ This local source extension adds a HarmonyOS HDC backend; it is not included in 
 
 ### Device Management
 - **`mobile_list_available_devices`** - List all available devices (simulators, emulators, and real devices)
+- **`mobile_get_harmony_capabilities`** - Inspect HarmonyOS command presence, helper availability and permissions separately; untested operations remain unknown
 - **`mobile_connect_harmony_device`** - Connect to an explicitly specified HarmonyOS / OpenHarmony network-debugging address and verify the connection
 - **`mobile_disconnect_harmony_device`** - Disconnect one specified network device
 - **`mobile_get_screen_size`** - Get the screen size of the mobile device in pixels
@@ -182,7 +185,7 @@ What you will need to connect MCP with your agent and mobile devices:
 - [Xcode command line tools](https://developer.apple.com/xcode/resources/)
 - [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools)
 - HDC from DevEco Studio / HarmonyOS command line tools for HarmonyOS / OpenHarmony devices
-- [node.js](https://nodejs.org/en/download/) v20+
+- [node.js](https://nodejs.org/en/download/) v20.9.0+
 - [MCP](https://modelcontextprotocol.io/introduction) supported foundational models or agents, like [Claude MCP](https://modelcontextprotocol.io/quickstart/server), [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/mcp/), [Copilot Studio](https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/introducing-model-context-protocol-mcp-in-copilot-studio-simplified-integration-with-ai-apps-and-agents/)
 
 ## Installation and configuration

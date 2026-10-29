@@ -10,3 +10,6 @@ plugin/.claude-plugin/types
 
 # Local cross-compiled native helpers and build metadata
 native/**/build/
+
+# Local device acceptance reports and screenshots
+acceptance-runs/

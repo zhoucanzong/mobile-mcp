@@ -10,6 +10,8 @@ export interface ScreenSize extends Dimensions {
 export interface InstalledApp {
 	packageName: string;
 	appName: string;
+	appNameSource?: "system-label" | "bundle-name";
+	appNameWarning?: string;
 }
 
 export interface ForegroundApp extends InstalledApp {

@@ -35,6 +35,8 @@ npm run build
 
 将示例中的仓库路径和 HDC 路径替换为实际路径。如果 `hdc` 已在客户端进程的 PATH 中，可以省略 `HDC_PATH`。这份示例不会自动更改任何客户端配置。
 
+逐工具及参数的跨平台差异见[完整对照表](platform-parity.md)，自检和可运行验收入口见[验收说明](harmonyos-acceptance.md)。
+
 ## 能力范围
 
 | 功能 | 当前实现 | 设备侧条件或边界 |
@@ -47,11 +49,11 @@ npm run build
 | 拖拽、双指缩放、组合手势 | uinput 触屏拖拽与同时多指移动；组合点击/长按/停顿 | 检查命令能力与屏幕边界；详细参数见[扩展说明](automation.md)，真机待验证 |
 | 等待、检查与流程编排 | 元素/应用/方向条件、if、repeat、显式重试 | 有超时及执行次数上限；失败时可保存截图、日志和报告 |
 | 文字输入 | `uitest uiInput text` | 需要 API 18+ 对应命令；输入框须先获得焦点，实际写入需回读验证 |
-| 按键 | `uitest uiInput keyEvent` | HOME、BACK、ENTER、BACKSPACE、POWER、VOLUME_UP、VOLUME_DOWN |
-| 截图、屏幕尺寸、当前方向 | `uitest screenCap` | 按 UITest、snapshot_display、screenshot 顺序尝试；返回实际 PNG/JPEG，暂不缩放或转换格式，文件扩展名须匹配 |
+| 按键 | `uitest uiInput keyEvent` | HOME、BACK、ENTER、BACKSPACE、POWER、VOLUME_UP、VOLUME_DOWN、APP_SWITCH、DPAD_CENTER/UP/DOWN/LEFT/RIGHT |
+| 截图、屏幕尺寸、当前方向 | `uitest screenCap` | 按 UITest、snapshot_display、screenshot 顺序尝试；在主机端完整解码，支持 PNG/JPEG 转换、等比缩小、JPEG quality；输出编码匹配文件扩展名 |
 | 设备日志 | `hilog -v epoch` | 先返回已有缓冲区，再持续读取；支持 pid/tag/level/subsystem(domain)/message 筛选，30 秒固定期限，最多 8 MiB；不支持 process/category 筛选 |
 | 前台应用 | WindowManagerService 焦点输出 + UITest 界面树 | 默认显示屏；返回焦点窗口所属包和可用的 Ability；无法对应的系统窗口、权限不足、缺失元数据时明确报错 |
-| 应用列表 | `bm dump -a` | 应用名当前使用 bundleName |
+| 应用列表 | `bm dump -a` | 使用 bm dump -a -l 的系统标签；缺失/不支持时明确说明包名回退 |
 | 启动、终止应用 | `aa start` / `aa force-stop` | 显式启动可使用 `bundleName/AbilityName`；不假设所有应用入口都叫 EntryAbility |
 | 安装、卸载 | `bm install` / `bm uninstall` | 安装仅接受 `.hap`；签名、设备授权及系统安装限制仍然生效 |
 | 打开网址 | `aa start -A ohos.want.action.viewData -U` | 上层仍默认仅允许 HTTP/HTTPS |
@@ -70,8 +72,9 @@ npm run build
 | MCP 工具 | 鸿蒙第一阶段状态 |
 |---|---|
 | `mobile_connect_harmony_device` / `mobile_disconnect_harmony_device` | 已实现：显式 host:port 连接、断开单台网络调试设备并核对连接状态 |
+| `mobile_get_harmony_capabilities` | 已实现：命令、功能语法、辅助组件、权限分别报告；默认不实际读数据，可开启只读探测，未验证保持 unknown |
 | `mobile_list_available_devices` | 已实现：合并 HDC 与原有平台的设备 |
-| `mobile_list_apps` | 已实现：bundleName 列表 |
+| `mobile_list_apps` | 已实现：bundleName 列表与系统本地化名称，缺失时明确回退 |
 | `mobile_launch_app` | 已实现：支持显式 Ability；不支持启动语言覆盖 |
 | `mobile_terminate_app` | 已实现 |
 | `mobile_install_app` | 已实现：仅 `.hap` |
@@ -86,8 +89,8 @@ npm run build
 | `mobile_type_keys` | 已实现：UTF-8 传输；实际中文输入待真机验收 |
 | `mobile_press_button` | 已实现：见上表限定的按键集合 |
 | `mobile_open_url` | 已实现 |
-| `mobile_take_screenshot` | 已实现：原始 PNG/JPEG，按实际内容标记格式 |
-| `mobile_save_screenshot` | 已实现：保存实际 PNG/JPEG，格式与扩展名不匹配时报错 |
+| `mobile_take_screenshot` | 已实现：format、quality、maxSize、scale，主机转换与缩放，返回实际坐标映射 |
+| `mobile_save_screenshot` | 已实现：按扩展名转换 PNG/JPEG，支持 quality、maxSize、scale |
 | `mobile_drag_on_screen` / `mobile_pinch_on_screen` / `mobile_perform_gestures` | 已实现：拖拽、同时双指缩放、顺序组合手势；要求设备 uinput 对应能力，真机待验证 |
 | `mobile_wait_for_condition` / `mobile_assert_condition` | 已实现：中文元素选择、前台应用和方向检查、轮询等待与失败资料保存 |
 | `mobile_run_workflow` | 已实现：条件分支、有界循环、重新定位、操作后检查、显式重试及失败历史；见[参数与示例](automation.md) |
@@ -146,7 +149,7 @@ npm run build
 
 手机已开启网络调试时，可调用 `mobile_connect_harmony_device`，传入显式 `address`（如 `192.168.1.10:5555`）；工具不自动开启手机网络调试、不假定端口、不分配云设备。连接成功需设备列表中出现对应标识。断开使用 `mobile_disconnect_harmony_device`，只影响该地址；USB 和其他连接保持原状。重新连接会丢弃旧的设备上下文。
 
-截图依次尝试可用的系统命令，每次使用独立临时路径，返回文件的实际格式及尺寸。全部失败时返回错误，不生成替代画面。JPEG-only 设备保存截图时须使用 `.jpg`；PNG-only 设备须使用 `.png`。
+截图依次尝试可用的系统命令，每次使用独立临时路径，返回文件的实际格式及尺寸。全部失败时返回错误，不生成替代画面。PNG/JPEG 可在主机端转换，saveTo 的扩展名决定保存格式。maxSize 优先于 scale，等比缩小不放大；inline 默认 JPEG quality=75、最大边1024。PNG保持无损。图片输入最多64MiB/64MP，损坏或超限报错。底层截图、转码与目标手机UI响应属于不同验证层次。
 
 ## 崩溃报告
 

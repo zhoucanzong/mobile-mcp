@@ -12,7 +12,7 @@ const layout = () => ({
 	}],
 });
 
-const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=", "base64");
+const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWNgYGAAAAAEAAGjChXjAAAAAElFTkSuQmCC", "base64");
 
 const mockRobot = () => {
 	const hdc = new Hdc();
@@ -122,7 +122,7 @@ test("rejects unsupported operations and invalid app arguments before acting", a
 
 test("retrieves a PNG and cleans both host and device temporary files", async () => {
 	const { robot, calls, getLocalScreenshot } = mockRobot();
-	expect(await robot.getScreenshot({ format: "jpeg", maxSize: 1024 })).toEqual(png);
+	expect(await robot.getScreenshot()).toEqual(png);
 	expect(fs.existsSync(getLocalScreenshot()!)).toBe(false);
 	expect(calls.some(args => args[0] === "rm" && args[2].endsWith(".png"))).toBe(true);
 	expect(await robot.getScreenSize()).toEqual({ width: 1, height: 1, scale: 1 });
@@ -185,4 +185,12 @@ test("supports explicit ability launch and preserves URL query parameters", asyn
 	await robot.launchApp("com.example.app/EntryAbility");
 	await robot.openUrl("https://example.com/?q=中文&a=1");
 	expect(calls).toEqual([["aa", "start", "-b", "com.example.app", "-a", "EntryAbility"], ["aa", "start", "-A", "ohos.want.action.viewData", "-U", "https://example.com/?q=中文&a=1"]]);
+});
+
+test("maps directional focus and recent-app buttons to OpenHarmony keycodes", async () => {
+	const { robot, calls } = mockRobot();
+	for (const [button, code] of Object.entries({ DPAD_UP: "2012", DPAD_DOWN: "2013", DPAD_LEFT: "2014", DPAD_RIGHT: "2015", DPAD_CENTER: "2016", APP_SWITCH: "10011" })) {
+		await robot.pressButton(button as any);
+		expect(calls.at(-1)).toEqual(["uitest", "uiInput", "keyEvent", code]);
+	}
 });

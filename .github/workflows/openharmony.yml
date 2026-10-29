@@ -23,6 +23,8 @@ jobs:
         run: npm run build
       - name: Lint
         run: npm run lint
+      - name: Platform parameter matrix
+        run: npm run audit:platforms:check
       # Phase one exercises mocked HDC/MCP behavior, not a physical phone.
       - name: Unit and protocol tests
         env:

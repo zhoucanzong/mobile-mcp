@@ -1,0 +1,331 @@
+{
+  "version": 1,
+  "name": "鸿蒙统一验收模板",
+  "fixture": "需要受控测试应用：标题 Mobile MCP 验收、空输入框 acceptance-input、increment/reset-counter 按钮、计数标签，以及拖拽/缩放/组合手势成功标记。请按实际应用修改选择器和坐标；此模板不会安装测试应用。",
+  "cases": [
+    {
+      "id": "basic-read",
+      "category": "basic",
+      "description": "Read hierarchy, app labels, dimensions and an encoded screenshot. Verify the fixture is open.",
+      "steps": [
+        {
+          "tool": "mobile_list_apps",
+          "arguments": {}
+        },
+        {
+          "tool": "mobile_get_screen_size",
+          "arguments": {}
+        },
+        {
+          "tool": "mobile_list_elements_on_screen",
+          "arguments": {
+            "format": "json"
+          }
+        },
+        {
+          "tool": "mobile_assert_condition",
+          "arguments": {
+            "condition": {
+              "kind": "element",
+              "selector": {
+                "text": "Mobile MCP 验收"
+              }
+            }
+          }
+        },
+        {
+          "tool": "mobile_take_screenshot",
+          "arguments": {
+            "format": "jpeg",
+            "maxSize": 720,
+            "quality": 80
+          }
+        }
+      ]
+    },
+    {
+      "id": "chinese-input",
+      "category": "chinese",
+      "description": "Focus an initially empty test input and verify exact Chinese and Emoji text.",
+      "steps": [
+        {
+          "tool": "mobile_run_workflow",
+          "arguments": {
+            "steps": [
+              {
+                "kind": "call",
+                "name": "mobile_click_on_screen_at_coordinates",
+                "arguments": {},
+                "target": {
+                  "identifier": "acceptance-input"
+                }
+              },
+              {
+                "kind": "call",
+                "name": "mobile_type_keys",
+                "arguments": {
+                  "text": "你好，鸿蒙！123🙂",
+                  "submit": false
+                },
+                "expect": {
+                  "kind": "element",
+                  "selector": {
+                    "identifier": "acceptance-input",
+                    "text": "你好，鸿蒙！123🙂"
+                  }
+                }
+              }
+            ],
+            "captureOnFailure": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "drag",
+      "category": "gestures",
+      "description": "Replace coordinates with the fixture drop zone; the app must expose a drag-success marker.",
+      "steps": [
+        {
+          "tool": "mobile_run_workflow",
+          "arguments": {
+            "steps": [
+              {
+                "kind": "call",
+                "name": "mobile_drag_on_screen",
+                "arguments": {
+                  "from": {
+                    "x": 200,
+                    "y": 600
+                  },
+                  "to": {
+                    "x": 700,
+                    "y": 600
+                  },
+                  "pressMs": 600,
+                  "durationMs": 1500
+                },
+                "expect": {
+                  "kind": "element",
+                  "selector": {
+                    "text": "拖拽成功"
+                  }
+                }
+              }
+            ],
+            "captureOnFailure": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "pinch",
+      "category": "gestures",
+      "description": "The fixture must expose a zoom-success marker following a two-finger outward pinch.",
+      "steps": [
+        {
+          "tool": "mobile_run_workflow",
+          "arguments": {
+            "steps": [
+              {
+                "kind": "call",
+                "name": "mobile_pinch_on_screen",
+                "arguments": {
+                  "center": {
+                    "x": 500,
+                    "y": 800
+                  },
+                  "startDistance": 100,
+                  "endDistance": 400,
+                  "durationMs": 600
+                },
+                "expect": {
+                  "kind": "element",
+                  "selector": {
+                    "text": "缩放成功"
+                  }
+                }
+              }
+            ],
+            "captureOnFailure": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "combined-gestures",
+      "category": "gestures",
+      "description": "Adapt coordinates to a resettable gesture fixture and verify its completion marker.",
+      "steps": [
+        {
+          "tool": "mobile_run_workflow",
+          "arguments": {
+            "steps": [
+              {
+                "kind": "call",
+                "name": "mobile_perform_gestures",
+                "arguments": {
+                  "gestures": [
+                    {
+                      "kind": "tap",
+                      "point": {
+                        "x": 200,
+                        "y": 400
+                      }
+                    },
+                    {
+                      "kind": "pause",
+                      "durationMs": 200
+                    },
+                    {
+                      "kind": "hold",
+                      "point": {
+                        "x": 200,
+                        "y": 400
+                      },
+                      "durationMs": 700
+                    }
+                  ]
+                },
+                "expect": {
+                  "kind": "element",
+                  "selector": {
+                    "text": "组合手势成功"
+                  }
+                }
+              }
+            ],
+            "captureOnFailure": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "conditional-loop",
+      "category": "workflow",
+      "description": "Fixture counter starts at 0; click its increment button twice and verify count 2. Both branches have observable effects.",
+      "steps": [
+        {
+          "tool": "mobile_run_workflow",
+          "arguments": {
+            "steps": [
+              {
+                "kind": "if",
+                "condition": {
+                  "kind": "element",
+                  "selector": {
+                    "text": "计数：0"
+                  }
+                },
+                "then": [
+                  {
+                    "kind": "repeat",
+                    "maxIterations": 2,
+                    "steps": [
+                      {
+                        "kind": "call",
+                        "name": "mobile_click_on_screen_at_coordinates",
+                        "arguments": {},
+                        "target": {
+                          "identifier": "increment"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "else": [
+                  {
+                    "kind": "call",
+                    "name": "mobile_click_on_screen_at_coordinates",
+                    "arguments": {},
+                    "target": {
+                      "identifier": "reset-counter"
+                    }
+                  },
+                  {
+                    "kind": "repeat",
+                    "maxIterations": 2,
+                    "steps": [
+                      {
+                        "kind": "call",
+                        "name": "mobile_click_on_screen_at_coordinates",
+                        "arguments": {},
+                        "target": {
+                          "identifier": "increment"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "wait",
+                "condition": {
+                  "kind": "element",
+                  "selector": {
+                    "text": "计数：2"
+                  }
+                },
+                "timeoutMs": 3000,
+                "stableForMs": 300
+              }
+            ],
+            "captureOnFailure": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "failure-recovery",
+      "category": "recovery",
+      "description": "Deliberately assert an absent marker, collect failure evidence, then prove UI reads still work.",
+      "steps": [
+        {
+          "tool": "mobile_assert_condition",
+          "arguments": {
+            "condition": {
+              "kind": "element",
+              "selector": {
+                "text": "THIS_MARKER_MUST_NOT_EXIST_7f42"
+              }
+            },
+            "captureOnFailure": true
+          },
+          "expectError": "Assertion failed"
+        },
+        {
+          "tool": "mobile_assert_condition",
+          "arguments": {
+            "condition": {
+              "kind": "element",
+              "selector": {
+                "text": "Mobile MCP 验收"
+              }
+            }
+          }
+        },
+        {
+          "tool": "mobile_take_screenshot",
+          "arguments": {
+            "format": "png",
+            "scale": 0.5
+          }
+        }
+      ]
+    }
+  ],
+  "manualChecks": [
+    {
+      "id": "disconnect-recovery",
+      "description": "人工断开并重连设备，检查旧引用失败、操作不继续及重新发现后可恢复；记录实际现象。"
+    },
+    {
+      "id": "recording",
+      "description": "验证录屏授权、部署、停止收尾以及视频实际可播放。"
+    },
+    {
+      "id": "permissions",
+      "description": "分别验证剪贴板、日志与定位的系统权限；定位没有授权时明确记录受限。"
+    }
+  ]
+}

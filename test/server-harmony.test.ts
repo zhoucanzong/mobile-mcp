@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -163,8 +164,8 @@ test("batches coordinate tap, Chinese input and submit through HDC", async () =>
 	});
 });
 
-test("returns actual PNG content and saves it without pretending it is JPEG", async () => {
-	const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYAAAAAMAAWgmWQ0AAAAASUVORK5CYII=", "base64");
+test("returns requested image formats and saves converted screenshots", async () => {
+	const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWNgYGAAAAAEAAGjChXjAAAAAElFTkSuQmCC", "base64");
 	Hdc.prototype.executeCommand = args => {
 		if (args[0] === "list") {
 			return Buffer.from("MATE60\n");
@@ -182,14 +183,16 @@ test("returns actual PNG content and saves it without pretending it is JPEG", as
 		await withClient(async client => {
 			const result: any = await client.callTool({ name: "mobile_take_screenshot", arguments: { device: "harmony:MATE60" } });
 			expect(result.isError).not.toBe(true);
-			expect(result.content.find((item: any) => item.type === "image")).toMatchObject({ mimeType: "image/png", data: png.toString("base64") });
+			const image = result.content.find((item: any) => item.type === "image");
+			expect(image.mimeType).toBe("image/jpeg");
+			expect(await sharp(Buffer.from(image.data, "base64")).metadata()).toMatchObject({ format: "jpeg", width: 1, height: 1 });
 			const saveTo = path.join(directory, "中文截图.png");
 			const saved: any = await client.callTool({ name: "mobile_save_screenshot", arguments: { device: "harmony:MATE60", saveTo } });
 			expect(saved.isError).not.toBe(true);
 			expect(fs.readFileSync(saveTo)).toEqual(png);
 			const wrong: any = await client.callTool({ name: "mobile_save_screenshot", arguments: { device: "harmony:MATE60", saveTo: path.join(directory, "wrong.jpg") } });
-			expect(wrong.isError).toBe(true);
-			expect(fs.existsSync(path.join(directory, "wrong.jpg"))).toBe(false);
+			expect(wrong.isError).not.toBe(true);
+			expect(await sharp(fs.readFileSync(path.join(directory, "wrong.jpg"))).metadata()).toMatchObject({ format: "jpeg" });
 		});
 	} finally {
 		fs.rmSync(directory, { recursive: true, force: true });
@@ -253,7 +256,7 @@ test("reports the focused HarmonyOS bundle and Ability over MCP", async () => {
 	await withClient(async client => {
 		const result: any = await client.callTool({ name: "mobile_get_foreground_app", arguments: { device: "harmony:MATE60" } });
 		expect(result.isError).not.toBe(true);
-		expect(result.content[0].text).toBe("Foreground app: com.example.notes (com.example.notes), activity: EntryAbility");
+		expect(result.content[0].text).toBe("Foreground app: com.example.notes (com.example.notes), activity: EntryAbility\nApplication label warning: Bundle label response is not JSON; this system may not support bm dump -a -l");
 	});
 });
 
@@ -307,11 +310,11 @@ test("supports a JPEG-only capture fallback without mislabelling saved PNG files
 			const jpg = path.join(directory, "capture.jpg");
 			const saved: any = await client.callTool({ name: "mobile_save_screenshot", arguments: { device: "harmony:MATE60", saveTo: jpg } });
 			expect(saved.isError).not.toBe(true);
-			expect(fs.readFileSync(jpg)).toEqual(jpeg);
+			expect(await sharp(fs.readFileSync(jpg)).metadata()).toMatchObject({ format: "jpeg", width: (await sharp(jpeg).metadata()).width, height: (await sharp(jpeg).metadata()).height });
 			const png = path.join(directory, "wrong.png");
 			const wrong: any = await client.callTool({ name: "mobile_save_screenshot", arguments: { device: "harmony:MATE60", saveTo: png } });
-			expect(wrong.isError).toBe(true);
-			expect(fs.existsSync(png)).toBe(false);
+			expect(wrong.isError).not.toBe(true);
+			expect(await sharp(fs.readFileSync(png)).metadata()).toMatchObject({ format: "png" });
 		});
 	} finally {
 		fs.rmSync(directory, { recursive: true, force: true });
@@ -571,5 +574,17 @@ test("manages HarmonyOS application lifecycle through MCP", async () => {
 		const remaining = await call("mobile_list_apps");
 		expect(remaining).not.toContain("com.example.notes");
 		expect(remaining).toContain("com.example.calendar");
+	});
+});
+
+test("MCP self-check distinguishes command presence from untested permission", async () => {
+	Hdc.prototype.shellChecked = (_target, args) => args[0] === "param" ? "test-version" : "available";
+	await withClient(async client => {
+		const result: any = await client.callTool({ name: "mobile_get_harmony_capabilities", arguments: { device: "harmony:MATE60" } });
+		expect(result.isError).not.toBe(true);
+		const report = JSON.parse(result.content[0].text);
+		expect(report.commands.uitest.state).toBe("available");
+		expect(report.permissions["input.write"].state).toBe("unknown");
+		expect(report.probeReads).toBe(false);
 	});
 });

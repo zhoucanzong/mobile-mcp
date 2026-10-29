@@ -8,6 +8,8 @@
 
 > **このブランチの HarmonyOS / OpenHarmony 対応：**[セットアップ手順](docs/harmonyos.md)に従って本リポジトリをビルドしてください。下記の上流 npm インストールにはこの対応は含まれません。実機検証は未実施です。ネイティブ録画にはデバイス SDK でビルドしたヘルパーが必要です。模擬位置情報にはシステム認可されたプラットフォームコンポーネントが必要です。制限は対応表に記載しています。
 
+ホスト側でスクリーンショットの縮小、PNG/JPEG 変換と JPEG 品質指定に対応しました。アプリ一覧はシステムの表示名を優先し、取得できない場合はパッケージ名へのフォールバックを明示します。方向キーと履歴キーのコードも追加しました。[ツール・パラメータ比較](docs/platform-parity.md)と[能力確認・統一検証手順](docs/harmonyos-acceptance.md)を参照してください。検証プログラムは既定で計画だけを確認し、実機操作には `--execute` が必要です。実機互換性は未検証です。
+
 第1段階のソース対応とシミュレーション検証は完了しました。[検証記録](docs/harmonyos-phase1-verification.md)を参照してください。実機動作と実験的なシステム位置情報機能の認可は次の段階で確認します。
 
 **Claude Code、Codex、Gemini、GitHub Copilot、Antigravity に対応** — その他 MCP 互換クライアントでも動作します。
@@ -94,6 +96,7 @@ npx @mobilenext/mobile-mcp@latest install
 
 ### デバイス管理
 - **`mobile_list_available_devices`** - 利用可能なすべてのデバイス（シミュレーター、エミュレーター、実機）を一覧表示します
+- **`mobile_get_harmony_capabilities`** - HarmonyOS のコマンド、補助コンポーネント、権限を個別に確認し、未検証の項目は unknown として報告します
 - **`mobile_connect_harmony_device`** - 指定した HarmonyOS / OpenHarmony のネットワークデバッグ先に接続し、接続状態を確認します
 - **`mobile_disconnect_harmony_device`** - 指定した 1 台のネットワークデバイスを切断します
 - **`mobile_get_screen_size`** - モバイルデバイスの画面サイズをピクセル単位で取得します
@@ -171,7 +174,7 @@ MCP をエージェントおよびモバイルデバイスに接続するため�
 - [Xcode コマンドラインツール](https://developer.apple.com/xcode/resources/)
 - [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools)
 - HarmonyOS / OpenHarmony デバイスには DevEco Studio SDK またはコマンドラインツールの HDC が必要です
-- [node.js](https://nodejs.org/en/download/) v20 以上
+- [node.js](https://nodejs.org/en/download/) v20.9.0 以上
 - [MCP](https://modelcontextprotocol.io/introduction) に対応した基盤モデルまたはエージェント。例: [Claude MCP](https://modelcontextprotocol.io/quickstart/server)、[OpenAI Agent SDK](https://openai.github.io/openai-agents-python/mcp/)、[Copilot Studio](https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/introducing-model-context-protocol-mcp-in-copilot-studio-simplified-integration-with-ai-apps-and-agents/)
 
 ## インストールと設定

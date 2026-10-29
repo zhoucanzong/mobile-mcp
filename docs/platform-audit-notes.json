@@ -1,0 +1,594 @@
+{
+  "mobile_list_available_devices": {
+    "iosAndroid": "合并 mobilecli；旧模式另枚举 go-ios/adb；模拟器 agent 安装在选定设备时发生。",
+    "harmony": "合并 hdc list targets，保留原生 harmonyos 平台；HDC 缺失不阻断其他平台。",
+    "sources": [
+      "src/server.ts",
+      "src/harmony.ts",
+      "src/mobile-device.ts"
+    ],
+    "parameters": {}
+  },
+  "mobile_connect_harmony_device": {
+    "iosAndroid": "无对应网络连接工具；不映射至 adb。",
+    "harmony": "HDC tconn / tdisconn 并核对目标发现状态。",
+    "sources": [
+      "src/server.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "address": "显式 host:port；IPv4、IPv6 或主机名，校验后只连接/断开目标。未收尾录屏或定位会话阻止连接改变。"
+    }
+  },
+  "mobile_disconnect_harmony_device": {
+    "iosAndroid": "无对应网络连接工具；不映射至 adb。",
+    "harmony": "HDC tconn / tdisconn 并核对目标发现状态。",
+    "sources": [
+      "src/server.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "address": "显式 host:port；IPv4、IPv6 或主机名，校验后只连接/断开目标。未收尾录屏或定位会话阻止连接改变。"
+    }
+  },
+  "mobile_login_to_cloud_provider": {
+    "iosAndroid": "原有 mobilecli 云登录，可能需要用户授权。",
+    "harmony": "没有鸿蒙云后端。",
+    "sources": [
+      "src/server.ts",
+      "src/mobilecli.ts"
+    ],
+    "parameters": {}
+  },
+  "mobile_list_remote_devices": {
+    "iosAndroid": "原有 mobilecli 云设备目录。",
+    "harmony": "目录不承诺鸿蒙设备。",
+    "sources": [
+      "src/server.ts",
+      "src/mobilecli.ts"
+    ],
+    "parameters": {}
+  },
+  "mobile_allocate_remote_device": {
+    "iosAndroid": "原有云分配参数。",
+    "harmony": "不支持鸿蒙云分配。",
+    "sources": [
+      "src/server.ts",
+      "src/mobilecli.ts"
+    ],
+    "parameters": {
+      "platform": "仅 ios/android，不允许 harmonyos。",
+      "name": "传给云提供商的设备名称筛选。",
+      "version": "传给提供商的版本筛选。",
+      "type": "传给提供商的设备类型筛选。",
+      "wait": "是否等待分配结果；沿用提供商语义。",
+      "timeoutSeconds": "等待分配的秒数；不用于本地 HDC。"
+    }
+  },
+  "mobile_release_remote_device": {
+    "iosAndroid": "释放云提供商设备。",
+    "harmony": "不适用于本地 harmony: ID。",
+    "sources": [
+      "src/server.ts",
+      "src/mobilecli.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。"
+    }
+  },
+  "mobile_list_apps": {
+    "iosAndroid": "默认 apps list 使用 appName 字段并回退包名；旧 Android 仅列 launcher 应用且返回包名，旧 iOS 用 go-ios 的名称。",
+    "harmony": "bm dump -a 列包；bm dump -a -l 返回本地化 label。缺失或冲突时明确回退包名，不解析资源描述符猜名称。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/harmony-apps.ts",
+      "src/ios.ts",
+      "src/android.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。"
+    }
+  },
+  "mobile_get_foreground_app": {
+    "iosAndroid": "默认 apps foreground；旧后端没有可选 getForegroundApp。",
+    "harmony": "默认显示屏焦点窗口前后核对，UI 树 hostWindowId 映射 bundle/Ability；不把第一个可见窗口当作前台。 显示名称使用系统标签，失败时明确回退包名。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/harmony-apps.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。"
+    }
+  },
+  "mobile_launch_app": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "aa start；locale 非空明确报错。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/ios.ts",
+      "src/android.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "packageName": "iOS/Android 为包名；鸿蒙额外接受 bundleName/AbilityName，未给 Ability 时使用系统解析。",
+      "locale": "默认包装器转交 --locale；旧 iOS 传 AppleLanguages/AppleLocale；旧 Android 尝试 cmd locale set-app-locales（API33+），失败会忽略。鸿蒙明确不支持按应用启动语言覆盖。"
+    }
+  },
+  "mobile_terminate_app": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "aa force-stop。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "packageName": "iOS/Android 包名；鸿蒙仅 bundleName，不接受 /Ability。"
+    }
+  },
+  "mobile_install_app": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "HAP 安装；签名和权限仍需目标系统允许。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "path": "主机文件路径，共同校验允许扩展名；iOS/Android 由后端安装；鸿蒙仅签名 .hap，上传临时设备路径后 bm install。"
+    }
+  },
+  "mobile_uninstall_app": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "bm uninstall；不会把卸载失败当成成功。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "packageName": "设备包名；鸿蒙校验 bundleName 后 bm uninstall -n。"
+    }
+  },
+  "mobile_get_screen_size": {
+    "iosAndroid": "默认 device info；旧 iOS WDA 尺寸、旧 Android wm size/density。",
+    "harmony": "原始截图像素，scale=1；显示尺寸检查仍需截图权限。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/ios.ts",
+      "src/android.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。"
+    }
+  },
+  "mobile_click_on_screen_at_coordinates": {
+    "iosAndroid": "默认 io tap/longpress；双击解析一次 ref 后连续点击。旧后端走 WDA 或 adb。",
+    "harmony": "UITest click/doubleClick/longClick，自定义长按使用 uinput，失败尝试抬指恢复。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/ios.ts",
+      "src/android.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "x": "原始屏幕坐标，和 y 成对；给 ref 时 ref 优先；鸿蒙取整。",
+      "y": "与 x 同上；各平台屏幕单位见 get_screen_size，截图缩放后须坐标换算。",
+      "ref": "默认包装器支持；旧 iOS/Android 没有 ref 方法。鸿蒙为最近快照引用，动作后失效，执行前再次核对布局。"
+    }
+  },
+  "mobile_double_tap_on_screen": {
+    "iosAndroid": "默认 io tap/longpress；双击解析一次 ref 后连续点击。旧后端走 WDA 或 adb。",
+    "harmony": "UITest click/doubleClick/longClick，自定义长按使用 uinput，失败尝试抬指恢复。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/ios.ts",
+      "src/android.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "x": "原始屏幕坐标，和 y 成对；给 ref 时 ref 优先；鸿蒙取整。",
+      "y": "与 x 同上；各平台屏幕单位见 get_screen_size，截图缩放后须坐标换算。",
+      "ref": "默认包装器支持；旧 iOS/Android 没有 ref 方法。鸿蒙为最近快照引用，动作后失效，执行前再次核对布局。"
+    }
+  },
+  "mobile_long_press_on_screen_at_coordinates": {
+    "iosAndroid": "默认 io tap/longpress；双击解析一次 ref 后连续点击。旧后端走 WDA 或 adb。",
+    "harmony": "UITest click/doubleClick/longClick，自定义长按使用 uinput，失败尝试抬指恢复。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/ios.ts",
+      "src/android.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "x": "原始屏幕坐标，和 y 成对；给 ref 时 ref 优先；鸿蒙取整。",
+      "y": "与 x 同上；各平台屏幕单位见 get_screen_size，截图缩放后须坐标换算。",
+      "ref": "默认包装器支持；旧 iOS/Android 没有 ref 方法。鸿蒙为最近快照引用，动作后失效，执行前再次核对布局。",
+      "duration": "单位毫秒；默认包装器/旧后端按 server 默认值传入。鸿蒙省略时使用系统 longClick；显式值取整后 1–10000，依赖 uinput down/interval/up。"
+    }
+  },
+  "mobile_list_elements_on_screen": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "解析 UITest attributes/children；中文、bounds 和状态保留，生成 @h 引用。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/format-elements.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "format": "text/json 只影响主机输出格式，各后端返回同一 ScreenElement 结构；可用字段取决于设备树。"
+    }
+  },
+  "mobile_press_button": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "UITest keyEvent；新增 DPAD 2012–2016 与 RECENT 10011 的官方键码，设备响应待验证。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "button": "名称不等价：Android 包含 BACK/POWER/APP_SWITCH/DPAD；iOS 支持 HOME/VOLUME/ENTER/LOCK；鸿蒙包含 HOME/BACK/VOLUME/ENTER/BACKSPACE/POWER/APP_SWITCH/DPAD，不把 LOCK 当作 POWER。"
+    }
+  },
+  "mobile_open_url": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "aa start -A ohos.want.action.viewData -U。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "url": "公共层默认只允许 http/https；MOBILEMCP_ALLOW_UNSAFE_URLS=1 才允许其他 scheme。鸿蒙使用 aa viewData，原始查询参数经 shell 转义。"
+    }
+  },
+  "mobile_swipe_on_screen": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "UITest swipe，端点保持屏幕范围内。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "direction": "up/down/left/right；坐标轴方向一致。",
+      "x": "与 y 同时提供或同时省略；省略时使用后端中心。",
+      "y": "与 x 成对。",
+      "distance": "指定起点时传给后端；没有起点时公共回调调用 swipe(direction)，distance 不生效（各平台共同现状）。默认包装器 400 像素；鸿蒙中心滑动为方向尺寸 30%，自定义起点默认 400，边界钳制。"
+    }
+  },
+  "mobile_type_keys": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "UITest uiInput text + 可选 Enter。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/android.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "text": "Unicode 字符串；默认 mobilecli 转交，旧 Android 非 ASCII 需要 DeviceKit；鸿蒙要求 UITest text（API18+），写入结果须回读。",
+      "submit": "默认 false；true 在文本输入后另按 ENTER，不能保证业务已提交。"
+    }
+  },
+  "mobile_save_screenshot": {
+    "iosAndroid": "默认 mobilecli 原生处理；旧 iOS/Android 只返回原始 PNG。",
+    "harmony": "三种截图命令回退，完整解码，再用主机 sharp 编码/缩放；输入限制64MiB/64MP，截图坐标映射使用原屏幕尺寸。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/screenshot-transform.ts",
+      "src/coordinate-mapping.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "saveTo": "主机输出路径，扩展名 png/jpg/jpeg 决定编码；遵守公共输出路径校验。",
+      "quality": "JPEG 整数 1–100，take 默认75，鸿蒙 save 默认75；PNG 保持无损，不将 quality 映射成有损调色板。旧后端忽略。",
+      "maxSize": "最大边长，等比缩小不放大；优先于 scale。take 未给两者时默认1024；save 省略则原始尺寸。旧后端忽略。",
+      "scale": "0<scale<=1；仅没有 maxSize 时使用；鸿蒙在主机解码缩放，极小输出至少1像素。旧后端忽略。"
+    }
+  },
+  "mobile_take_screenshot": {
+    "iosAndroid": "默认 mobilecli 原生处理；旧 iOS/Android 只返回原始 PNG。",
+    "harmony": "三种截图命令回退，完整解码，再用主机 sharp 编码/缩放；输入限制64MiB/64MP，截图坐标映射使用原屏幕尺寸。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts",
+      "src/screenshot-transform.ts",
+      "src/coordinate-mapping.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "format": "png/jpeg，默认 jpeg；默认包装器转交，旧后端仍可能返回 PNG，响应 MIME 按实际内容。鸿蒙主机转换为请求格式。",
+      "quality": "JPEG 整数 1–100，take 默认75，鸿蒙 save 默认75；PNG 保持无损，不将 quality 映射成有损调色板。旧后端忽略。",
+      "maxSize": "最大边长，等比缩小不放大；优先于 scale。take 未给两者时默认1024；save 省略则原始尺寸。旧后端忽略。",
+      "scale": "0<scale<=1；仅没有 maxSize 时使用；鸿蒙在主机解码缩放，极小输出至少1像素。旧后端忽略。"
+    }
+  },
+  "mobile_set_orientation": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "不更改旋转锁；应用/旋转锁限制可导致失败。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "orientation": "portrait/landscape；鸿蒙要求开发者模式及显示服务 -motion，并轮询截图验证方向。"
+    }
+  },
+  "mobile_get_orientation": {
+    "iosAndroid": "默认转交 mobilecli；旧后端以 ios.ts / android.ts 为准。",
+    "harmony": "以原始截图宽高判定 portrait/landscape，不提供正反方向四象限。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。"
+    }
+  },
+  "mobile_fold_device": {
+    "iosAndroid": "默认 device fold；旧后端没有 fold。",
+    "harmony": "检查开发者模式/命令支持，注入 named 状态并读回；Mate60Pro 非折叠不能提供折叠能力。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "posture": "folded/half-open/open，与 angle 互斥；默认包装器转交；鸿蒙是状态模拟，不移动实体铰链，需可折叠硬件。",
+      "angle": "0–180；原接口说明限定 iOS 对应模拟器；鸿蒙不支持精确角度，明确报错。"
+    }
+  },
+  "mobile_set_location": {
+    "iosAndroid": "默认 device location set/clear；旧后端无可选方法。",
+    "harmony": "需要平台构建、系统身份及 MOCK_LOCATION 授权；本阶段不把源码/会话模拟当成部署成功。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony-location.ts",
+      "native/harmony-location/README.md"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "latitude": "与 longitude 同时提供则设置；两者省略则清除。纬度[-90,90]。",
+      "longitude": "经度[-180,180]；鸿蒙组件持续发布并校验 mock 标记/坐标，退出时需确认关闭。"
+    }
+  },
+  "mobile_clipboard": {
+    "iosAndroid": "默认 io clipboard；旧后端没有统一读写接口。",
+    "harmony": "需要系统 pasteboard CLI 与权限；不自动授权。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony-clipboard.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "text": "省略读取，空字符串清空，非空写入。鸿蒙仅纯文本、最多64KiB UTF8、无NUL；保留尾部换行；系统命令保留字 --help 不支持，写后回读。"
+    }
+  },
+  "mobile_get_device_logs": {
+    "iosAndroid": "默认 CLI 实时流，30秒无新日志超时；旧后端无此接口。",
+    "harmony": "HiLog 含已有缓冲区，30秒总期限；不假装与 silence timeout 相同。",
+    "sources": [
+      "src/server.ts",
+      "src/mobile-device.ts",
+      "src/harmony-logs.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "limit": "1–10000，默认100。鸿蒙还受8MiB上限约束。",
+      "filter": "AND 组合 key=value/key!=value。鸿蒙支持pid/tag/level/subsystem(domain)/message；process/category明确不支持。iOS/Android转交各自后端，字段不能假设相同。",
+      "saveTo": "可选主机 .log/.txt/.jsonl 文件；省略返回 NDJSON 文本。"
+    }
+  },
+  "mobile_start_screen_recording": {
+    "iosAndroid": "mobilecli screenrecord 子进程；不经旧 Robot。",
+    "harmony": "SDK原生录屏组件，无音频；启动要系统确认，组件在主机配置后部署。",
+    "sources": [
+      "src/server.ts",
+      "src/harmony-recording.ts",
+      "native/harmony-recorder/README.md",
+      "src/mobilecli.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "output": "可选主机 .mp4 输出，省略用私有临时路径；共同路径校验。",
+      "timeLimit": "单位秒；鸿蒙限制整数1–86400；iOS/Android直接传 CLI，平台范围由CLI决定。"
+    }
+  },
+  "mobile_stop_screen_recording": {
+    "iosAndroid": "停止本进程记录的 CLI 会话；结果由原有收尾路径决定。",
+    "harmony": "必须收集当前或已自动停止的会话；核对终止事件、MP4盒结构并保存。结构检查不是视频可播放验收。",
+    "sources": [
+      "src/server.ts",
+      "src/harmony-recording.ts",
+      "src/mobilecli.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。"
+    }
+  },
+  "mobile_list_crashes": {
+    "iosAndroid": "直接 mobilecli crashes list。",
+    "harmony": "列固定faultlogger目录中的支持类型，权限不足报错。",
+    "sources": [
+      "src/server.ts",
+      "src/harmony-crashes.ts",
+      "src/mobilecli.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。"
+    }
+  },
+  "mobile_get_crash": {
+    "iosAndroid": "直接 mobilecli crashes get。",
+    "harmony": "保留错误文本内容，不将报告里的 Error 当作命令错误。",
+    "sources": [
+      "src/server.ts",
+      "src/harmony-crashes.ts",
+      "src/mobilecli.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "id": "必须来自列表；鸿蒙仅支持目录内已列出的常规文件，拒绝路径穿越/符号链接，大小上限8MiB。"
+    }
+  },
+  "mobile_get_harmony_capabilities": {
+    "iosAndroid": "此工具限定 harmony: ID。",
+    "harmony": "命令、功能、权限和组件分项available/unavailable/unknown；失联也返回unknown报告。",
+    "sources": [
+      "src/server.ts",
+      "src/harmony-capabilities.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。自检可报告未连接状态。",
+      "probeReads": "默认false只查命令/帮助/组件；true额外读UI/截图/应用/剪贴板/日志/崩溃列表/前台，不返回敏感内容。不执行写入测试，写权限保持unknown。"
+    }
+  },
+  "mobile_drag_on_screen": {
+    "iosAndroid": "这三个新增工具当前明确限定鸿蒙；不声称已扩展iOS/Android。",
+    "harmony": "真实双指用同一uinput调用；组合手势之间抬指；中断后多指释放状态未知。",
+    "sources": [
+      "src/server.ts",
+      "src/automation-tools.ts",
+      "src/harmony-gestures.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "from": "起点{x,y}为原屏幕整数像素。",
+      "to": "终点{x,y}；初始和每步运行时边界检查，不钳制。",
+      "pressMs": "500–14500毫秒，默认500。",
+      "durationMs": "1000–15000毫秒，默认1000，含按住时长，移动至少500ms。",
+      "captureOnFailure": "默认true，失败采集私有主机截图/日志/报告；取证失败不能覆盖操作失败。"
+    }
+  },
+  "mobile_pinch_on_screen": {
+    "iosAndroid": "这三个新增工具当前明确限定鸿蒙；不声称已扩展iOS/Android。",
+    "harmony": "真实双指用同一uinput调用；组合手势之间抬指；中断后多指释放状态未知。",
+    "sources": [
+      "src/server.ts",
+      "src/automation-tools.ts",
+      "src/harmony-gestures.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "center": "中心{x,y}原屏幕像素。",
+      "startDistance": "两指完整起始间距2–10000，换算坐标必须在屏幕内。",
+      "endDistance": "最终间距2–10000，不能等于起始值；向外变大，向内变小。",
+      "angle": "相对水平轴-180–180度，默认0；坐标取整。",
+      "durationMs": "1–15000毫秒，默认500。",
+      "captureOnFailure": "默认true；仅在失败时保存诊断。"
+    }
+  },
+  "mobile_perform_gestures": {
+    "iosAndroid": "这三个新增工具当前明确限定鸿蒙；不声称已扩展iOS/Android。",
+    "harmony": "真实双指用同一uinput调用；组合手势之间抬指；中断后多指释放状态未知。",
+    "sources": [
+      "src/server.ts",
+      "src/automation-tools.ts",
+      "src/harmony-gestures.ts",
+      "src/harmony.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "gestures": "1–20个tap/hold/drag/pinch/pause节点；请求时长总和<=60000ms，全部初始参数预检查。",
+      "captureOnFailure": "默认true；失败停止后续手势并记录已有动作可能生效。"
+    }
+  },
+  "mobile_wait_for_condition": {
+    "iosAndroid": "共用编排层；依赖Robot的读能力，旧后端前台应用检查不可用。",
+    "harmony": "同一层；界面读取失败绝不当成元素消失。",
+    "sources": [
+      "src/server.ts",
+      "src/automation.ts",
+      "src/automation-tools.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "condition": "element/app/orientation；嵌套选择器见下文。",
+      "timeoutMs": "0–60000毫秒，默认10000；0只检查一次。",
+      "pollIntervalMs": "50–5000毫秒，默认250。",
+      "stableForMs": "0–10000毫秒，默认0且不超过timeoutMs；连续观测匹配，不保证两次采样之间未变化。",
+      "captureOnFailure": "默认true；失败取证写主机临时目录。"
+    }
+  },
+  "mobile_assert_condition": {
+    "iosAndroid": "共用检查层，能力受后端限制。",
+    "harmony": "中文精确/包含匹配；presence不证明未被遮挡。",
+    "sources": [
+      "src/server.ts",
+      "src/automation.ts",
+      "src/automation-tools.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "condition": "与等待相同，立即检查一次，不匹配返回MCP错误。",
+      "captureOnFailure": "默认true；取证与检查结果独立。"
+    }
+  },
+  "mobile_run_workflow": {
+    "iosAndroid": "共用编排；target需要后端提供ref方法，旧后端不支持ref。",
+    "harmony": "共享设备无并发隔离；动作后引用过期，target每次重新定位；无撤销。",
+    "sources": [
+      "src/server.ts",
+      "src/automation.ts",
+      "src/automation-tools.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "steps": "call/wait/if/repeat，最多3层控制结构、每列表50、总声明200；参数和所有分支预检查。",
+      "timeoutMs": "1–300000毫秒，默认60000；设备调用之间检查，不强行中断在途命令，取证另耗时。",
+      "maxSteps": "1–500，默认100；计入控制节点、执行步骤和额外重试。",
+      "captureOnFailure": "默认true；最后一次失败才取证，不为每次重试重复保存。"
+    }
+  },
+  "mobile_batch_commands": {
+    "iosAndroid": "共用原有工具回调。",
+    "harmony": "与通用层相同；步骤可以覆盖device（workflow禁止）。",
+    "sources": [
+      "src/server.ts",
+      "src/server.ts"
+    ],
+    "parameters": {
+      "device": "发现所得设备 ID；鸿蒙必须使用 harmony: 前缀。",
+      "steps": "数组{name,arguments}，逐个按工具schema解析；禁止嵌套batch和inline截图。与workflow不同，参数不是整批提前校验。",
+      "stopOnError": "默认true停止于首个失败；false继续；原工具以文本列出失败，不保证外层isError为true。",
+      "listElementsAtEnd": "默认false；true末尾重读元素，返回新引用。"
+    }
+  }
+}

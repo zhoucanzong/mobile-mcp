@@ -8,6 +8,8 @@
 
 > **本分支的鸿蒙 / OpenHarmony 支持：**请按[接入说明](docs/harmonyos.md)构建并运行本仓库。下方上游 npm 快速安装命令不包含本分支适配。当前功能仍待真机验证；原生录屏需要 SDK 构建的设备组件，定位覆盖需要获得系统授权的平台组件；平台限制见功能对照。
 
+截图已支持主机端缩放、PNG/JPEG 转换及 JPEG 质量控制；应用列表优先显示系统解析的中文名称，缺失时明确回退包名，并补充了方向键和最近应用键码。参见[逐工具逐参数对照](docs/platform-parity.md)及[能力自检与统一验收入口](docs/harmonyos-acceptance.md)。验收程序默认只校验计划，添加 `--execute` 才会操作手机，真实兼容性仍待下一阶段验证。
+
 第一阶段代码适配和模拟验收已完成，详见[验证记录](docs/harmonyos-phase1-verification.md)。真实手机运行及实验性系统级定位的部署授权留到下一阶段验证。
 
 **支持 Claude Code、Codex、Gemini、GitHub Copilot、Antigravity** —— 以及任何兼容 MCP 的客户端。
@@ -96,6 +98,7 @@ npx @mobilenext/mobile-mcp@latest install
 
 ### 设备管理
 - **`mobile_list_available_devices`** - 列出所有可用设备（模拟器、仿真器和真机）
+- **`mobile_get_harmony_capabilities`** - 分别检查鸿蒙命令、辅助组件和权限；未实际验证的能力保持 unknown
 - **`mobile_connect_harmony_device`** - 连接指定地址的鸿蒙 / OpenHarmony 网络调试设备并核验连接状态
 - **`mobile_disconnect_harmony_device`** - 断开指定的一台网络设备
 - **`mobile_get_screen_size`** - 获取移动设备的屏幕尺寸（像素）
@@ -173,7 +176,7 @@ npx @mobilenext/mobile-mcp@latest install
 - [Xcode 命令行工具](https://developer.apple.com/xcode/resources/)
 - [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools)
 - 鸿蒙 / OpenHarmony 设备需要 DevEco Studio SDK 或命令行工具中的 HDC
-- [node.js](https://nodejs.org/en/download/) v20 及以上
+- [node.js](https://nodejs.org/en/download/) v20.9.0 及以上
 - 支持 [MCP](https://modelcontextprotocol.io/introduction) 的基础模型或智能体，例如 [Claude MCP](https://modelcontextprotocol.io/quickstart/server)、[OpenAI Agent SDK](https://openai.github.io/openai-agents-python/mcp/)、[Copilot Studio](https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/introducing-model-context-protocol-mcp-in-copilot-studio-simplified-integration-with-ai-apps-and-agents/)
 
 ## 安装与配置

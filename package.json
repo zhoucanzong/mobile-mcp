@@ -8,7 +8,7 @@
     "url": "git+https://github.com/mobile-next/mobile-mcp.git"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20.9.0"
   },
   "license": "Apache-2.0",
   "scripts": {
@@ -19,7 +19,10 @@
     "test": "c8 playwright test",
     "watch": "tsc --watch",
     "clean": "rm -rf lib",
-    "prepare": "husky"
+    "prepare": "husky",
+    "harmony:accept": "node lib/harmony-acceptance.js",
+    "audit:platforms": "node scripts/generate-platform-matrix.cjs",
+    "audit:platforms:check": "node scripts/generate-platform-matrix.cjs --check"
   },
   "files": [
     "lib"
@@ -36,6 +39,7 @@
     "fast-xml-parser": "5.8.0",
     "mobilewright": "0.0.67",
     "qs": "^6.15.0",
+    "sharp": "0.35.5",
     "zod": "^4.2.0",
     "zod-to-json-schema": "3.25.0"
   },

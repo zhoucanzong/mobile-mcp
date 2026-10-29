@@ -53,3 +53,10 @@ test("brackets the UI dump with focus queries and rejects a focus change", async
 	expect(calls[0]).toEqual(["hidumper", "-s", "WindowManagerService", "-a", "-a"]);
 	expect(calls.some(args => args[0] === "rm")).toBe(true);
 });
+
+test("resolves a Chinese foreground app label without changing focused identity", async () => {
+	const hdc = new Hdc();
+	hdc.shell = (_target, args) => args[0] === "hidumper" ? "Focus window: 91" : args[0] === "cat" ? JSON.stringify(layout) : args[0] === "bm" ? '[{"bundleName":"com.example.notes","label":"备忘录"}]' : "";
+	const app = await new HarmonyRobot("harmony:TEST", hdc).getForegroundApp();
+	expect(app).toMatchObject({ appName: "备忘录", packageName: "com.example.notes", activity: "EntryAbility", appNameSource: "system-label" });
+});

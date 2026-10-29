@@ -1,3 +1,6 @@
+import { screenshotOptionsSchema, transformScreenshot } from "./screenshot-transform";
+import { listHarmonyApps, resolveHarmonyApp } from "./harmony-apps";
+import { inspectHarmonyCapabilities, CapabilityReport } from "./harmony-capabilities";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -207,6 +210,10 @@ export class HarmonyRobot implements Robot {
 		validateHdcTarget(this.target);
 	}
 
+	public getCapabilities(probeReads = false): Promise<CapabilityReport> {
+		return inspectHarmonyCapabilities(this.hdc, this.target, this, probeReads);
+	}
+
 	private invalidateRefs(): void {
 		this.refs.clear();
 		this.snapshot = undefined;
@@ -268,7 +275,8 @@ export class HarmonyRobot implements Robot {
 			throw new ActionableError("HarmonyOS focus changed during inspection. Retry mobile_get_foreground_app");
 		}
 
-		return harmonyForegroundFromLayout(layout, before);
+		const app = harmonyForegroundFromLayout(layout, before);
+		return { ...app, ...resolveHarmonyApp(this.hdc, this.target, app.packageName) };
 	}
 
 	private resolveRef(ref: string): ScreenElementRect {
@@ -398,7 +406,7 @@ export class HarmonyRobot implements Robot {
 	}
 
 	public async pressButton(button: Button): Promise<void> {
-		const keys: Record<string, string> = { HOME: "Home", BACK: "Back", ENTER: "2054", BACKSPACE: "2055", POWER: "18", VOLUME_UP: "16", VOLUME_DOWN: "17" };
+		const keys: Record<string, string> = { HOME: "Home", BACK: "Back", ENTER: "2054", BACKSPACE: "2055", POWER: "18", VOLUME_UP: "16", VOLUME_DOWN: "17", DPAD_UP: "2012", DPAD_DOWN: "2013", DPAD_LEFT: "2014", DPAD_RIGHT: "2015", DPAD_CENTER: "2016", APP_SWITCH: "10011" };
 		const key = keys[button.toUpperCase()];
 		if (!key) {
 			throw new ActionableError(`Button ${button} is not supported on HarmonyOS. Supported: ${Object.keys(keys).join(", ")}`);
@@ -408,6 +416,7 @@ export class HarmonyRobot implements Robot {
 	}
 
 	public async getScreenshot(options?: ScreenshotOptions): Promise<Buffer> {
+		screenshotOptionsSchema.parse(options ?? {});
 		const failures: string[] = [];
 		const methods = [
 			{ extension: "png", command: (remote: string) => ["uitest", "screenCap", "-p", remote] },
@@ -416,9 +425,10 @@ export class HarmonyRobot implements Robot {
 		];
 		for (const method of methods) {
 			try {
-				return this.withRemoteFile(method.extension, remote => {
+				const captured = this.withRemoteFile(method.extension, remote => {
 					this.hdc.shell(this.target, method.command(remote));
 				}, remote => this.receiveScreenshot(remote));
+				return await transformScreenshot(captured, options);
 			} catch (error: any) {
 				failures.push(`${method.command("<output>")[0]}: ${error.message}`);
 			}
@@ -568,8 +578,7 @@ export class HarmonyRobot implements Robot {
 	}
 
 	public async listApps(): Promise<InstalledApp[]> {
-		const output = this.hdc.shell(this.target, ["bm", "dump", "-a"]);
-		return [...new Set(output.split(/\r?\n/).map(line => line.trim()).filter(line => /^[a-zA-Z][\w]*(?:\.[\w]+)+$/.test(line)))].map(packageName => ({ packageName, appName: packageName }));
+		return listHarmonyApps(this.hdc, this.target);
 	}
 
 	public async launchApp(packageName: string, locale?: string): Promise<void> {

@@ -669,7 +669,9 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		async ({ device }) => {
 			const robot = getRobotFromDevice(device);
 			const result = await robot.listApps();
-			return `Found these apps on device: ${result.map(app => `${app.appName} (${app.packageName})`).join(", ")}`;
+			const warnings = [...new Set(result.flatMap(app => app.appNameWarning ? [app.appNameWarning] : []))];
+			return `Found these apps on device: ${result.map(app => `${app.appName} (${app.packageName})${app.appNameSource === "bundle-name" ? " [name fallback]" : ""}`).join(", ")}` +
+				(warnings.length ? `\nApplication label warnings: ${warnings.join("; ")}` : "");
 		}
 	);
 
@@ -689,7 +691,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 
 			const app = await robot.getForegroundApp();
 			const activity = app.activity ? `, activity: ${app.activity}` : "";
-			return `Foreground app: ${app.appName} (${app.packageName})${activity}`;
+			return `Foreground app: ${app.appName} (${app.packageName})${activity}` + (app.appNameWarning ? `\nApplication label warning: ${app.appNameWarning}` : "");
 		}
 	);
 
@@ -913,7 +915,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 				"The button to press, in upper case. Supported buttons:",
 				"Android: HOME, BACK, VOLUME_UP, VOLUME_DOWN, ENTER, BACKSPACE, APP_SWITCH, POWER, DPAD_CENTER, DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT",
 				"iOS: HOME, VOLUME_UP, VOLUME_DOWN, ENTER, LOCK",
-				"HarmonyOS: HOME, BACK, VOLUME_UP, VOLUME_DOWN, ENTER, BACKSPACE, POWER",
+				"HarmonyOS: HOME, BACK, VOLUME_UP, VOLUME_DOWN, ENTER, BACKSPACE, POWER, APP_SWITCH, DPAD_CENTER, DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT",
 				"BACKSPACE deletes the character before the cursor, APP_SWITCH opens the recent apps, POWER turns the screen on or off, LOCK locks the screen, and the DPAD buttons move focus on Android TV.",
 			].join("\n")),
 		},
@@ -1008,18 +1010,19 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
 			saveTo: z.string().describe("The path to save the screenshot to. Filename must end with .png, .jpg, or .jpeg"),
+			quality: z.number().int().min(1).max(100).optional().describe("JPEG quality, 1–100; PNG remains lossless. Defaults to backend JPEG quality (75 on HarmonyOS)"),
 			maxSize: z.number().int().positive().optional().describe("Maximum width/height in pixels, keeping aspect ratio. Omit for full size."),
 			scale: z.number().gt(0).max(1).optional().describe("Scale factor (0.0-1.0). Ignored if maxSize is provided."),
 		},
 		{ readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-		async ({ device, saveTo, maxSize, scale }) => {
+		async ({ device, saveTo, maxSize, scale, quality }) => {
 			validateFileExtension(saveTo, ALLOWED_SCREENSHOT_EXTENSIONS, "save_screenshot");
 			validateOutputPath(saveTo);
 
 			const robot = getRobotFromDevice(device);
 
 			const format = saveTo.toLowerCase().endsWith(".png") ? "png" : "jpeg";
-			const screenshot = await robot.getScreenshot({ format, maxSize, scale });
+			const screenshot = await robot.getScreenshot({ format, maxSize, scale, quality });
 
 			// legacy robots ignore the requested format and always return a png
 			const isPng = screenshot.length > 0 && screenshot[0] === 0x89;
@@ -1043,6 +1046,8 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 			description: "Take a screenshot of the mobile device. Use this to understand what's on screen, if you need to press an element that is available through view hierarchy then you must list elements on screen instead. The screenshot is usually smaller than the screen, so when the device reports its screen size the result also states how to convert positions in the screenshot into screen coordinates before tapping. Do not cache this result.",
 			inputSchema: z.object({
 				device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
+				format: z.enum(["png", "jpeg"]).optional().describe("Image format; defaults to jpeg. Legacy backends may return PNG"),
+				quality: z.number().int().min(1).max(100).optional().describe("JPEG quality, 1–100; defaults to 75. PNG remains lossless"),
 				maxSize: z.number().int().positive().optional().describe(`Maximum width/height in pixels, keeping aspect ratio. Defaults to ${DEFAULT_SCREENSHOT_MAX_SIZE}.`),
 				scale: z.number().gt(0).max(1).optional().describe("Scale factor (0.0-1.0). Ignored if maxSize is provided."),
 			}),
@@ -1051,13 +1056,13 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 				openWorldHint: true,
 			},
 		},
-		async ({ device, maxSize, scale }) => {
+		async ({ device, maxSize, scale, format, quality }) => {
 			try {
 				const robot = getRobotFromDevice(device);
 
 				// mobilecli scales and converts natively; legacy robots ignore the options and return a full-size png
 				// maxSize wins over scale (same precedence as mobilecli); the default applies only when neither is given
-				const options: ScreenshotOptions = { format: "jpeg", quality: 75 };
+				const options: ScreenshotOptions = { format: format ?? "jpeg", quality: quality ?? 75 };
 				if (maxSize !== undefined) {
 					options.maxSize = maxSize;
 				} else if (scale !== undefined) {
@@ -1423,6 +1428,18 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 			return response.data.content;
 		}
 	);
+
+	tool(
+		"mobile_get_harmony_capabilities",
+		"Inspect HarmonyOS Capabilities",
+		"Inspect command presence, advertised features, helper availability and operation permissions separately. Unknown is not success. Does not mutate input, clipboard, orientation, apps, recording or location. Optional read probes may read screen, clipboard and logs; their content is omitted. Self-check can report a disconnected device without claiming permissions.", {
+			device: z.string().regex(/^harmony:/).describe("Explicit HarmonyOS device id"),
+			probeReads: z.boolean().default(false).describe("Exercise read-only UI, screenshot, app, clipboard, log, crash-list and foreground operations; no write probes"),
+		}, { readOnlyHint: true, destructiveHint: false, openWorldHint: true }, async ({ device, probeReads }) => {
+			const cached = robotCache.get(device);
+			const robot = cached instanceof HarmonyRobot ? cached : new HarmonyRobot(device);
+			return JSON.stringify(await robot.getCapabilities(probeReads));
+		});
 
 	registerAutomationTools(tool, getRobotFromDevice, toolCallbacks);
 
