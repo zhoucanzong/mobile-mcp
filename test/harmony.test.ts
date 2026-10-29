@@ -130,6 +130,40 @@ test("retrieves a PNG and cleans both host and device temporary files", async ()
 	expect(await robot.getScreenSize()).toEqual({ width: 1, height: 1, scale: 1 });
 });
 
+test("falls back to an available screenshot command and cleans each attempt", async () => {
+	const hdc = new Hdc();
+	const calls: string[][] = [];
+	hdc.shell = (_target, args) => {
+		calls.push(args);
+		if (args[0] === "uitest") {
+			throw new Error("screenCap unavailable");
+		}
+
+		return "";
+	};
+	hdc.executeCommand = args => { fs.writeFileSync(args[5], png); return Buffer.from(""); };
+	expect(await new HarmonyRobot("harmony:MATE60", hdc).getScreenshot()).toEqual(png);
+	expect(calls.some(args => args[0] === "snapshot_display")).toBe(true);
+	expect(calls.filter(args => args[0] === "rm")).toHaveLength(2);
+	expect(calls.some(args => args[0] === "screenshot")).toBe(false);
+});
+
+test("never substitutes a fabricated image when all screenshot methods fail", async () => {
+	const hdc = new Hdc();
+	const cleanup: string[] = [];
+	hdc.shell = (_target, args) => {
+		if (args[0] === "rm") {
+			cleanup.push(args[2]);
+			return "";
+		}
+
+		throw new Error("capture denied");
+	};
+	await expect(new HarmonyRobot("harmony:MATE60", hdc).getScreenshot()).rejects.toThrow("No valid HarmonyOS screenshot");
+	expect(cleanup).toHaveLength(3);
+	expect(new Set(cleanup).size).toBe(3);
+});
+
 test("cleans device temporary files when the UI dump cannot be parsed", async () => {
 	const { robot, calls, setLayout } = mockRobot();
 	setLayout({ wrong: "shape" });

@@ -273,3 +273,64 @@ test("reports the focused HarmonyOS bundle and Ability over MCP", async () => {
 		expect(result.content[0].text).toBe("Foreground app: com.example.notes (com.example.notes), activity: EntryAbility");
 	});
 });
+
+test("connects and disconnects an explicit network device through MCP", async () => {
+	let connected = false;
+	Hdc.prototype.executeCommand = args => {
+		if (args[0] === "tconn") {
+			expect(args[1]).toBe("192.168.1.10:5555");
+			connected = true;
+		} else if (args[0] === "tdisconn") {
+			expect(args[1]).toBe("192.168.1.10:5555");
+			connected = false;
+		}
+
+		return Buffer.from(args[0] === "list" ? (connected ? "192.168.1.10:5555" : "[Empty]") : "");
+	};
+	await withClient(async client => {
+		for (const name of ["mobile_connect_harmony_device", "mobile_disconnect_harmony_device"]) {
+			const result: any = await client.callTool({ name, arguments: { address: "192.168.1.10:5555" } });
+			expect(result.isError).not.toBe(true);
+			expect(result.content[0].text).toContain("harmony:192.168.1.10:5555");
+		}
+	});
+	expect(connected).toBe(false);
+});
+
+test("supports a JPEG-only capture fallback without mislabelling saved PNG files", async () => {
+	const jpeg = fs.readFileSync(path.join(__dirname, "fixtures", "baseline.jpg"));
+	const original = Hdc.prototype.shell;
+	Hdc.prototype.shell = function(target, args) {
+		if (args[0] === "uitest" || args[0] === "snapshot_display") {
+			throw new Error("capture method unavailable");
+		}
+
+		return original.call(this, target, args);
+	};
+	Hdc.prototype.executeCommand = args => {
+		if (args[0] === "list") {
+			return Buffer.from("MATE60");
+		}
+
+		fs.writeFileSync(args[5], jpeg);
+		return Buffer.from("");
+	};
+	const directory = fs.mkdtempSync(path.join(os.tmpdir(), "mobile-mcp-jpeg-test-"));
+	try {
+		await withClient(async client => {
+			const image: any = await client.callTool({ name: "mobile_take_screenshot", arguments: { device: "harmony:MATE60" } });
+			expect(image.isError).not.toBe(true);
+			expect(image.content.find((item: any) => item.type === "image").mimeType).toBe("image/jpeg");
+			const jpg = path.join(directory, "capture.jpg");
+			const saved: any = await client.callTool({ name: "mobile_save_screenshot", arguments: { device: "harmony:MATE60", saveTo: jpg } });
+			expect(saved.isError).not.toBe(true);
+			expect(fs.readFileSync(jpg)).toEqual(jpeg);
+			const png = path.join(directory, "wrong.png");
+			const wrong: any = await client.callTool({ name: "mobile_save_screenshot", arguments: { device: "harmony:MATE60", saveTo: png } });
+			expect(wrong.isError).toBe(true);
+			expect(fs.existsSync(png)).toBe(false);
+		});
+	} finally {
+		fs.rmSync(directory, { recursive: true, force: true });
+	}
+});

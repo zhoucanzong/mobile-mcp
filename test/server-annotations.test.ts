@@ -5,6 +5,8 @@ import { createMcpServer } from "../src/server";
 type ToolAnnotationMatrix = Record<string, ToolAnnotations>;
 
 const expectedAnnotations: ToolAnnotationMatrix = {
+	mobile_connect_harmony_device: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+	mobile_disconnect_harmony_device: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 	mobile_list_available_devices: { readOnlyHint: true, openWorldHint: false },
 	mobile_login_to_cloud_provider: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
 	mobile_list_remote_devices: { readOnlyHint: true, openWorldHint: true },

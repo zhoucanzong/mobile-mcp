@@ -95,7 +95,7 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG screenshots, HiLog device logs, focused app inspection, app management and URLs. Recording, crash reports, clipboard,
+PNG/JPEG screenshots, HiLog device logs, focused app inspection, app management and URLs. Recording, crash reports, clipboard,
 GPS override, folding, custom-duration long press and setting orientation
 are not supported by this backend. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
@@ -473,6 +473,30 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 			}
 
 			return formatAvailableDevices(devices, warnings);
+		}
+	);
+
+	tool(
+		"mobile_connect_harmony_device", "Connect HarmonyOS Device",
+		"Connect to a user-specified HarmonyOS device with network debugging already enabled. Provide an explicit host:port. This does not enable debugging on the phone or allocate cloud devices.",
+		{ address: z.string().describe("Device network address including port, e.g. 192.168.1.10:5555") },
+		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+		async ({ address }) => {
+			const device = harmonyManager.connect(address);
+			robotCache.delete(device);
+			return `Connected HarmonyOS device: ${device}`;
+		}
+	);
+
+	tool(
+		"mobile_disconnect_harmony_device", "Disconnect HarmonyOS Device",
+		"Disconnect exactly one HarmonyOS network device identified by host:port. Does not disconnect USB devices or other network devices.",
+		{ address: z.string().describe("The exact network address and port used to connect") },
+		{ readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+		async ({ address }) => {
+			harmonyManager.disconnect(address);
+			robotCache.delete(`harmony:${address}`);
+			return `Disconnected HarmonyOS device: harmony:${address}`;
 		}
 	);
 
@@ -978,6 +1002,10 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 			const isPng = screenshot.length > 0 && screenshot[0] === 0x89;
 			if (format === "jpeg" && isPng) {
 				throw new ActionableError("This device only supports png screenshots, save to a .png file instead.");
+			}
+
+			if (format === "png" && !isPng) {
+				throw new ActionableError("This device returned JPEG; save to a .jpg file instead.");
 			}
 
 			writeOutputFile(saveTo, screenshot);

@@ -46,7 +46,7 @@ npm run build
 | 滑动 | `uitest uiInput swipe` | 坐标限制在截图给出的屏幕尺寸内 |
 | 文字输入 | `uitest uiInput text` | 需要 API 18+ 对应命令；输入框须先获得焦点，实际写入需回读验证 |
 | 按键 | `uitest uiInput keyEvent` | HOME、BACK、ENTER、BACKSPACE、POWER、VOLUME_UP、VOLUME_DOWN |
-| 截图、屏幕尺寸、当前方向 | `uitest screenCap` | 返回原始 PNG；暂不缩放，不转换 JPEG，保存时使用 `.png` |
+| 截图、屏幕尺寸、当前方向 | `uitest screenCap` | 按 UITest、snapshot_display、screenshot 顺序尝试；返回实际 PNG/JPEG，暂不缩放或转换格式，文件扩展名须匹配 |
 | 设备日志 | `hilog -v epoch` | 先返回已有缓冲区，再持续读取；支持 pid/tag/level/subsystem(domain)/message 筛选，30 秒固定期限，最多 8 MiB；不支持 process/category 筛选 |
 | 前台应用 | WindowManagerService 焦点输出 + UITest 界面树 | 默认显示屏；返回焦点窗口所属包和可用的 Ability；无法对应的系统窗口、权限不足、缺失元数据时明确报错 |
 | 应用列表 | `bm dump -a` | 应用名当前使用 bundleName |
@@ -67,6 +67,7 @@ npm run build
 
 | MCP 工具 | 鸿蒙第一阶段状态 |
 |---|---|
+| `mobile_connect_harmony_device` / `mobile_disconnect_harmony_device` | 已实现：显式 host:port 连接、断开单台网络调试设备并核对连接状态 |
 | `mobile_list_available_devices` | 已实现：合并 HDC 与原有平台的设备 |
 | `mobile_list_apps` | 已实现：bundleName 列表 |
 | `mobile_launch_app` | 已实现：支持显式 Ability；不支持启动语言覆盖 |
@@ -83,8 +84,8 @@ npm run build
 | `mobile_type_keys` | 已实现：UTF-8 传输；实际中文输入待真机验收 |
 | `mobile_press_button` | 已实现：见上表限定的按键集合 |
 | `mobile_open_url` | 已实现 |
-| `mobile_take_screenshot` | 已实现：原始 PNG |
-| `mobile_save_screenshot` | 已实现：保存 `.png`，不伪装为 JPEG |
+| `mobile_take_screenshot` | 已实现：原始 PNG/JPEG，按实际内容标记格式 |
+| `mobile_save_screenshot` | 已实现：保存实际 PNG/JPEG，格式与扩展名不匹配时报错 |
 | `mobile_batch_commands` | 已实现：复用统一工具回调 |
 | `mobile_get_foreground_app` | 已实现：默认显示屏焦点窗口 ID 与 UI 树包名、Ability 对应，焦点变化或对应不唯一时报错 |
 | `mobile_set_orientation` | 待适配，明确返回不支持 |
@@ -135,3 +136,9 @@ npm run build
 - [UITest 属性 hostWindowId](https://github.com/openharmony/testfwk_arkxtest/blob/f59296c77aac5037a9335c317af58de3a0c22ecb/uitest/core/ui_model.h#L101)
 
 焦点在界面读取前后各查询一次，减少应用切换产生的错配；这不是系统级原子快照。键盘、权限弹窗等系统窗口拿到焦点时，不会猜测背后的业务应用；仍需要第二阶段验证商业鸿蒙系统输出的兼容性。
+
+## 网络连接与截图兼容
+
+手机已开启网络调试时，可调用 `mobile_connect_harmony_device`，传入显式 `address`（如 `192.168.1.10:5555`）；工具不自动开启手机网络调试、不假定端口、不分配云设备。连接成功需设备列表中出现对应标识。断开使用 `mobile_disconnect_harmony_device`，只影响该地址；USB 和其他连接保持原状。重新连接会丢弃旧的设备上下文。
+
+截图依次尝试可用的系统命令，每次使用独立临时路径，返回文件的实际格式及尺寸。全部失败时返回错误，不生成替代画面。JPEG-only 设备保存截图时须使用 `.jpg`；PNG-only 设备须使用 `.png`。

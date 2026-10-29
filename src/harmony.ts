@@ -2,8 +2,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { isIP } from "node:net";
 import { Hdc, validateHdcTarget } from "./hdc";
 import { PNG } from "./png";
+import { getJpegDimensions } from "./jpeg";
 import { collectHarmonyLogs } from "./harmony-logs";
 import { ActionableError, Button, ForegroundApp, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
 
@@ -21,6 +23,31 @@ export interface HarmonyDeviceInfo {
 
 export class HarmonyDeviceManager {
 	constructor(private hdc = new Hdc()) { }
+
+	public connect(address: string): string {
+		this.validateAddress(address);
+		this.hdc.executeCommand(["tconn", address], 15000);
+		if (!this.discover().devices.some(device => device.id === HARMONY_DEVICE_PREFIX + address)) {
+			throw new ActionableError("HDC did not report the requested network device after connecting. Check the address, port and device authorization");
+		}
+
+		return HARMONY_DEVICE_PREFIX + address;
+	}
+
+	public disconnect(address: string): void {
+		this.validateAddress(address);
+		this.hdc.executeCommand(["tdisconn", address], 15000);
+		if (this.discover().devices.some(device => device.id === HARMONY_DEVICE_PREFIX + address)) {
+			throw new ActionableError("The requested HarmonyOS network device is still connected");
+		}
+	}
+
+	private validateAddress(address: string): void {
+		const match = /^(\[[0-9a-fA-F:]+\]|[a-zA-Z0-9][a-zA-Z0-9.-]*):(\d{1,5})$/.exec(address);
+		if (!match || Number(match[2]) < 1 || Number(match[2]) > 65535 || (match[1].startsWith("[") && isIP(match[1].slice(1, -1)) !== 6)) {
+			throw new ActionableError("Provide an explicit HarmonyOS network address and port, such as 192.168.1.10:5555 or [::1]:5555");
+		}
+	}
 
 	public discover(): { available: boolean; devices: HarmonyDeviceInfo[] } {
 		let output: string;
@@ -305,26 +332,47 @@ export class HarmonyRobot implements Robot {
 	}
 
 	public async getScreenshot(options?: ScreenshotOptions): Promise<Buffer> {
-		// Return a full-resolution PNG, as legacy robots do. The MCP layer
-		// detects the actual format and supplies the correct coordinate mapping.
-		return this.withRemoteFile("png", remote => {
-			this.hdc.shell(this.target, ["uitest", "screenCap", "-p", remote]);
-		}, remote => {
-			const directory = fs.mkdtempSync(path.join(os.tmpdir(), "mobile-mcp-harmony-"));
+		const failures: string[] = [];
+		const methods = [
+			{ extension: "png", command: (remote: string) => ["uitest", "screenCap", "-p", remote] },
+			{ extension: "png", command: (remote: string) => ["snapshot_display", "-f", remote] },
+			{ extension: "jpeg", command: (remote: string) => ["screenshot", remote] },
+		];
+		for (const method of methods) {
 			try {
-				const local = path.join(directory, "screen.png");
-				this.hdc.executeCommand(["-t", this.target, "file", "recv", remote, local]);
-				const data = fs.readFileSync(local);
-				new PNG(data).getDimensions();
-				return data;
-			} finally {
-				fs.rmSync(directory, { recursive: true, force: true });
+				return this.withRemoteFile(method.extension, remote => {
+					this.hdc.shell(this.target, method.command(remote));
+				}, remote => this.receiveScreenshot(remote));
+			} catch (error: any) {
+				failures.push(`${method.command("<output>")[0]}: ${error.message}`);
 			}
-		});
+		}
+
+		throw new ActionableError(`No valid HarmonyOS screenshot was captured. ${failures.join("; ")}`);
+	}
+
+	private receiveScreenshot(remote: string): Buffer {
+		const directory = fs.mkdtempSync(path.join(os.tmpdir(), "mobile-mcp-harmony-"));
+		try {
+			const local = path.join(directory, "screen.png");
+			this.hdc.executeCommand(["-t", this.target, "file", "recv", remote, local]);
+			const data = fs.readFileSync(local);
+			const size = this.screenshotSize(data);
+			if (size.width <= 0 || size.height <= 0) {
+				throw new ActionableError("Screenshot has invalid dimensions");
+			}
+			return data;
+		} finally {
+			fs.rmSync(directory, { recursive: true, force: true });
+		}
+	}
+
+	private screenshotSize(data: Buffer): { width: number; height: number } {
+		return data[0] === 0xff && data[1] === 0xd8 ? getJpegDimensions(data) : new PNG(data).getDimensions();
 	}
 
 	public async getScreenSize(): Promise<ScreenSize> {
-		return { ...new PNG(await this.getScreenshot()).getDimensions(), scale: 1 };
+		return { ...this.screenshotSize(await this.getScreenshot()), scale: 1 };
 	}
 
 	public async getOrientation(): Promise<Orientation> {
