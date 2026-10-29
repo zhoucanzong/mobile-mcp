@@ -95,7 +95,7 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG/JPEG screenshots, HiLog device logs, focused app inspection, app management and URLs. Recording, crash reports, clipboard,
+PNG/JPEG screenshots, HiLog device logs, focused app inspection, crash reports (requires system log read permission), app management and URLs. Recording, clipboard,
 GPS override, folding, custom-duration long press and setting orientation
 are not supported by this backend. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
@@ -1371,7 +1371,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		{ readOnlyHint: true, openWorldHint: true },
 		async ({ device }) => {
 			if (isHarmonyDevice(device)) {
-				throw new ActionableError("Crash reports are not supported by the HarmonyOS HDC backend");
+				return JSON.stringify((getRobotFromDevice(device) as HarmonyRobot).listCrashes());
 			}
 
 			ensureMobilecliAvailable();
@@ -1391,7 +1391,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 		{ readOnlyHint: true, openWorldHint: true },
 		async ({ device, id }) => {
 			if (isHarmonyDevice(device)) {
-				throw new ActionableError("Crash reports are not supported by the HarmonyOS HDC backend");
+				return (getRobotFromDevice(device) as HarmonyRobot).getCrash(id);
 			}
 
 			ensureMobilecliAvailable();

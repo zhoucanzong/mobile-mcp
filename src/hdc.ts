@@ -1,5 +1,6 @@
 import { execFileSync, spawn, ChildProcess } from "node:child_process";
 import { ActionableError } from "./robot";
+import { randomUUID } from "node:crypto";
 
 // hdc shell forwards a command string to the device shell, even though the
 // host process uses execFileSync. Quote every argument for that second shell.
@@ -25,7 +26,7 @@ export class Hdc {
 		});
 	}
 
-	public executeCommand(args: string[], timeout = 30000): Buffer {
+	public executeCommand(args: string[], timeout = 30000, inspectOutput = true): Buffer {
 		try {
 			const output = execFileSync(process.env.HDC_PATH || "hdc", args, {
 				timeout,
@@ -33,7 +34,7 @@ export class Hdc {
 				stdio: ["ignore", "pipe", "pipe"],
 			});
 			// HDC and some device tools print a failure but exit with status zero.
-			if (/^\s*(?:\[Fail\]|error\b|errorcode\b|failed\b|unknown command\b)/im.test(output.toString("utf8"))) {
+			if (inspectOutput && /^\s*(?:\[Fail\]|error\b|errorcode\b|failed\b|unknown command\b)/im.test(output.toString("utf8"))) {
 				throw new ActionableError(`HDC command failed: ${output.toString("utf8").trim()}`);
 			}
 
@@ -51,6 +52,21 @@ export class Hdc {
 			const detail = error.stderr?.toString().trim() || error.stdout?.toString().trim() || error.message;
 			throw new ActionableError(`HDC command failed: ${detail}`);
 		}
+	}
+
+	// Reads may legitimately contain error messages (for example a crash log).
+	// Check the device command's status rather than interpreting its data as errors.
+	public shellChecked(target: string, args: string[], timeout = 30000): string {
+		validateHdcTarget(target);
+		const marker = `MCP_STATUS_${randomUUID().replace(/-/g, "")}`;
+		const command = `${args.map(quoteHdcArgument).join(" ")}; mcp_status=$?; printf '\\n${marker}%s\\n' "$mcp_status"`;
+		const output = this.executeCommand(["-t", target, "shell", command], timeout, false).toString("utf8");
+		const match = new RegExp(`\\n${marker}(\\d+)\\r?\\n?$`).exec(output);
+		if (!match || match[1] !== "0") {
+			throw new ActionableError(`HarmonyOS file operation failed${match ? ` (status ${match[1]})` : " (missing command status)"}. Check device permissions and file availability`);
+		}
+
+		return output.slice(0, match.index);
 	}
 
 	public shell(target: string, args: string[], timeout = 30000): string {

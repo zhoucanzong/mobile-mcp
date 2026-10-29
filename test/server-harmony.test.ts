@@ -13,6 +13,7 @@ import type { ChildProcess } from "node:child_process";
 
 const originalHdcExecute = Hdc.prototype.executeCommand;
 const originalHdcShell = Hdc.prototype.shell;
+const originalShellChecked = Hdc.prototype.shellChecked;
 const originalVersion = Mobilecli.prototype.getVersion;
 const originalDevices = Mobilecli.prototype.getDevices;
 const originalSpawnShell = Hdc.prototype.spawnShell;
@@ -38,6 +39,7 @@ test.beforeEach(() => {
 test.afterEach(() => {
 	Hdc.prototype.executeCommand = originalHdcExecute;
 	Hdc.prototype.shell = originalHdcShell;
+	Hdc.prototype.shellChecked = originalShellChecked;
 	Mobilecli.prototype.getVersion = originalVersion;
 	Mobilecli.prototype.getDevices = originalDevices;
 	Hdc.prototype.spawnShell = originalSpawnShell;
@@ -169,8 +171,6 @@ test("unsupported HarmonyOS tools return errors instead of falling through to mo
 			{ name: "mobile_clipboard", args: {} },
 			{ name: "mobile_start_screen_recording", args: {} },
 			{ name: "mobile_stop_screen_recording", args: {} },
-			{ name: "mobile_list_crashes", args: {} },
-			{ name: "mobile_get_crash", args: { id: "test" } },
 		];
 		for (const { name, args } of cases) {
 			const result: any = await client.callTool({ name, arguments: { device: "harmony:MATE60", ...args } });
@@ -333,4 +333,21 @@ test("supports a JPEG-only capture fallback without mislabelling saved PNG files
 	} finally {
 		fs.rmSync(directory, { recursive: true, force: true });
 	}
+});
+
+test("lists and reads HarmonyOS crash reports through MCP", async () => {
+	const id = "jscrash-com.example.notes-10001-20261029123456123.log";
+	Hdc.prototype.shellChecked = (_target, args) => args[0] === "find" ? `/data/log/faultlog/faultlogger/${id}` : "Error: 中文崩溃\n";
+	await withClient(async client => {
+		const listed: any = await client.callTool({ name: "mobile_list_crashes", arguments: { device: "harmony:MATE60" } });
+		expect(listed.isError).not.toBe(true);
+		expect(JSON.parse(listed.content[0].text)[0]).toMatchObject({ id, processName: "com.example.notes" });
+		const report: any = await client.callTool({ name: "mobile_get_crash", arguments: { device: "harmony:MATE60", id } });
+		expect(report.isError).not.toBe(true);
+		expect(report.content[0].text).toBe("Error: 中文崩溃\n");
+		Hdc.prototype.shellChecked = () => { throw new Error("permission denied"); };
+		const denied: any = await client.callTool({ name: "mobile_list_crashes", arguments: { device: "harmony:MATE60" } });
+		expect(denied.isError).toBe(true);
+		expect(denied.content[0].text).toContain("permission denied");
+	});
 });

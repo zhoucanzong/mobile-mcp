@@ -7,6 +7,7 @@ import { Hdc, validateHdcTarget } from "./hdc";
 import { PNG } from "./png";
 import { getJpegDimensions } from "./jpeg";
 import { collectHarmonyLogs } from "./harmony-logs";
+import { HarmonyCrashes, HarmonyCrash } from "./harmony-crashes";
 import { ActionableError, Button, ForegroundApp, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
 
 export const HARMONY_DEVICE_PREFIX = "harmony:";
@@ -382,6 +383,14 @@ export class HarmonyRobot implements Robot {
 
 	public async getLogs(limit: number, filters: string[], timeoutMs: number): Promise<string> {
 		return collectHarmonyLogs(this.hdc, this.target, limit, filters, timeoutMs);
+	}
+
+	public listCrashes(): HarmonyCrash[] {
+		return new HarmonyCrashes(this.hdc, this.target).list();
+	}
+
+	public getCrash(id: string): string {
+		return new HarmonyCrashes(this.hdc, this.target).read(id);
 	}
 
 	public async setOrientation(orientation: Orientation): Promise<void> {

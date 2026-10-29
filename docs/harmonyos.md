@@ -55,7 +55,7 @@ npm run build
 | 打开网址 | `aa start -A ohos.want.action.viewData -U` | 上层仍默认仅允许 HTTP/HTTPS |
 | 批量执行 | 复用 `mobile_batch_commands` | 使用元素引用的步骤之间需要重新读取元素，或使用已知坐标 |
 
-暂不支持：自定义时长长按、设置屏幕方向、剪贴板工具、定位覆盖、折叠、录屏和崩溃报告。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
+暂不支持：自定义时长长按、设置屏幕方向、剪贴板工具、定位覆盖、折叠和录屏。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
 
 每次操作后会清除鸿蒙元素引用；按引用操作前还会重新读取布局。如果布局与引用来自的快照不同，会要求重新读取元素。界面持续变化时，可读取新快照后根据坐标操作；操作与布局校验之间仍可能发生变化。stdio 连接和 HTTP 请求均保留设备引用上下文；共享设备的客户端仍需协调操作，同一设备没有并发操作隔离。
 
@@ -94,7 +94,7 @@ npm run build
 | `mobile_set_location` | 待适配，明确返回不支持 |
 | `mobile_fold_device` | 未实现；还受设备是否有折叠硬件限制 |
 | `mobile_start_screen_recording` / `mobile_stop_screen_recording` | 待适配，明确返回不支持 |
-| `mobile_list_crashes` / `mobile_get_crash` | 待适配，明确返回不支持 |
+| `mobile_list_crashes` / `mobile_get_crash` | 已实现：系统故障日志目录中的 C++、JS、Rust、仓颉报告；要求设备授权读取目录 |
 | `mobile_login_to_cloud_provider` / `mobile_list_remote_devices` / `mobile_allocate_remote_device` / `mobile_release_remote_device` | 保留原云提供商接口，不提供鸿蒙云设备 |
 
 `get_more_tools` 仍是原项目的缺失能力反馈工具，不会安装或动态添加鸿蒙功能。
@@ -142,3 +142,11 @@ npm run build
 手机已开启网络调试时，可调用 `mobile_connect_harmony_device`，传入显式 `address`（如 `192.168.1.10:5555`）；工具不自动开启手机网络调试、不假定端口、不分配云设备。连接成功需设备列表中出现对应标识。断开使用 `mobile_disconnect_harmony_device`，只影响该地址；USB 和其他连接保持原状。重新连接会丢弃旧的设备上下文。
 
 截图依次尝试可用的系统命令，每次使用独立临时路径，返回文件的实际格式及尺寸。全部失败时返回错误，不生成替代画面。JPEG-only 设备保存截图时须使用 `.jpg`；PNG-only 设备须使用 `.png`。
+
+## 崩溃报告
+
+崩溃报告读取固定目录 `/data/log/faultlog/faultlogger` 中的 `cppcrash`、`jscrash`、`rustpanic` 和 `cjerror` 正式 `.log` 文件，不包含临时文件、冻结报告或二进制 dump。报告 ID 是文件名；时间来自设备本地时间，不标记为 UTC。先列举目录中的普通文件，再按 ID 读取；任意路径、目录跳转和符号链接不作为合法报告。读取前仍会核对文件是否存在，文件在读取期间被删除时会报错。
+
+设备命令使用独立的退出状态校验，报告正文里的 `Error` 字样不会被误判为命令失败。权限不足、目录不存在或 HDC 返回异常均作为错误返回，不解释为零条报告；不自动提升权限或修改目录权限。商业设备能否授权该目录，需要第二阶段确认。单次输出受 HDC 的 8 MiB 限制，超过限制会报错，不返回截断报告。
+
+命名和本地时间格式依据：[系统故障日志文件命名实现](https://github.com/openharmony/hiviewdfx_hiview/blob/c33975eee421d2ba314958d3bbcba511eb2c8dca/plugins/faultlogger/service/bdfr_base/utils/faultlog_util.cpp#L105)。
