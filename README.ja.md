@@ -1,10 +1,12 @@
-# Mobile Next - モバイル開発・自動化のための MCP サーバー | iOS、Android、シミュレーター、エミュレーター、実機
+# Mobile Next - モバイル開発・自動化のための MCP サーバー | iOS、Android、HarmonyOS / OpenHarmony、シミュレーター、実機
 
 [English](README.md) | **日本語** | [简体中文](README.zh-CN.md)
 
-これは MCP サーバーです。プラットフォームに依存しないインターフェースを通じて、スケーラブルなモバイル自動化と開発を可能にし、iOS や Android の個別知識を不要にします。エミュレーター、シミュレーター、実機（iOS および Android）で実行できます。
+この MCP サーバーは iOS、Android、HarmonyOS / OpenHarmony のモバイル自動化に共通のインターフェースを提供します。iOS / Android のシミュレーター、エミュレーター、実機に加え、実験的な HDC バックエンドで HarmonyOS / OpenHarmony 実機に対応します。
 
-このサーバーにより、エージェントや LLM は、構造化されたアクセシビリティスナップショット、またはスクリーンショットに基づく座標タップを通じて、ネイティブの iOS / Android アプリケーションおよびデバイスを操作できます。
+このサーバーにより、エージェントや LLM は、構造化されたアクセシビリティスナップショット、またはスクリーンショットに基づく座標タップを通じて、ネイティブの iOS、Android、HarmonyOS / OpenHarmony アプリケーションおよびデバイスを操作できます。
+
+> **このブランチの HarmonyOS / OpenHarmony 対応：**[セットアップ手順](docs/harmonyos.md)に従って本リポジトリをビルドしてください。下記の上流 npm インストールにはこの対応は含まれません。実機検証は未実施です。録画、クリップボード、位置情報の上書きなどの未対応機能は対応表に記載しています。
 
 **Claude Code、Codex、Gemini、GitHub Copilot、Antigravity に対応** — その他 MCP 互換クライアントでも動作します。
 
@@ -57,7 +59,7 @@ npx @mobilenext/mobile-mcp@latest install
 
 モバイル自動化のスケールをどのように支援するか:
 
-- 📲 テストやデータ入力シナリオのためのネイティブアプリ自動化（iOS および Android）
+- 📲 テストやデータ入力シナリオのためのネイティブアプリ自動化（iOS、Android、HarmonyOS / OpenHarmony）
 - 📝 シミュレーター / エミュレーターや実機（iPhone、Samsung、Google Pixel など）を手動操作せずに実行するスクリプト化されたフローとフォーム入力
 - 🧭 LLM が駆動する複数ステップのユーザージャーニーの自動化
 - 👆 エージェントベースのフレームワークのための汎用的なモバイルアプリケーション操作
@@ -66,7 +68,7 @@ npx @mobilenext/mobile-mcp@latest install
 ## 主な機能
 
 - 🚀 **アクセシビリティ優先 — 高速かつ低コスト**: ネイティブのアクセシビリティツリーからアプリを操作します（ビジョンモデル不要、画像トークン不要）。必要な場合のみスクリーンショット + 座標にフォールバックします。
-- 📱 **1 つの API であらゆるターゲットへ**: 同じツールが iOS と Android の両方で動作します — シミュレーター、エミュレーター、実機を問いません。
+- 📱 **共通のデバイス操作インターフェース**: iOS、Android、HarmonyOS / OpenHarmony を同じ MCP インターフェースで操作します。対応機能はプラットフォームによって異なります。[HarmonyOS の対応表](docs/harmonyos.md)を参照してください。
 - 🧠 **プラットフォームの専門知識は不要**: XCUITest も Espresso もプラットフォームごとのつなぎコードも不要です。目的を伝えればエージェントが実行します。
 - 🧰 **完全なデバイス制御**: タップ、スワイプ、ジェスチャー、アプリのインストール / 起動 / 終了、画面録画、ハードウェアボタン、ディープリンク、画面の向き。
 - 📊 **構造化された決定的な出力**: 実際の UI 要素を読み取って構造化データを抽出し、スクリーンショットのみのアプローチにありがちな曖昧さを削減します。
@@ -84,11 +86,14 @@ npx @mobilenext/mobile-mcp@latest install
 | iOS 実機 | ✅ | USB 接続され、信頼済みのデバイス |
 | Android エミュレーター | ✅ | Android SDK と実行中のエミュレーター (`adb`) |
 | Android 実機 | ✅ | `adb` と、有効化・認可済みの USB デバッグ |
+| HarmonyOS / OpenHarmony 実機 | 実験的・実機検証待ち | HDC + USB デバッグ + UITest。[対応範囲](docs/harmonyos.md) |
 
 ## 🔧 利用可能な MCP ツール
 
 ### デバイス管理
 - **`mobile_list_available_devices`** - 利用可能なすべてのデバイス（シミュレーター、エミュレーター、実機）を一覧表示します
+- **`mobile_connect_harmony_device`** - 指定した HarmonyOS / OpenHarmony のネットワークデバッグ先に接続し、接続状態を確認します
+- **`mobile_disconnect_harmony_device`** - 指定した 1 台のネットワークデバイスを切断します
 - **`mobile_get_screen_size`** - モバイルデバイスの画面サイズをピクセル単位で取得します
 - **`mobile_get_orientation`** - デバイスの現在の画面の向きを取得します
 - **`mobile_set_orientation`** - 画面の向きを変更します（縦向き / 横向き）
@@ -126,7 +131,7 @@ npx @mobilenext/mobile-mcp@latest install
 - **`mobile_open_url`** - デバイスのブラウザで URL を開きます
 
 ### ログとクラッシュレポート
-- **`mobile_get_device_logs`** - デバイスのライブログを収集します（Android は logcat、iOS は unified log）。ファイルへの保存も可能です
+- **`mobile_get_device_logs`** - デバイスログを収集します（Android は logcat、iOS は unified log、HarmonyOS は HiLog）。HiLog は既存のバッファと後続のライブ出力を読み取ります。ファイルへの保存も可能です
 - **`mobile_list_crashes`** - デバイス上で利用可能なクラッシュレポートを一覧表示します
 - **`mobile_get_crash`** - ID を指定してクラッシュレポートの全文を取得します
 - **`mobile_batch_commands`** - 複数のツールを 1 回の呼び出しで順番に実行します（例: クリック、入力、クリック）。最後に画面上の要素を一覧表示することもできます
@@ -151,6 +156,7 @@ MCP をエージェントおよびモバイルデバイスに接続するため�
 
 - [Xcode コマンドラインツール](https://developer.apple.com/xcode/resources/)
 - [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools)
+- HarmonyOS / OpenHarmony デバイスには DevEco Studio SDK またはコマンドラインツールの HDC が必要です
 - [node.js](https://nodejs.org/en/download/) v20 以上
 - [MCP](https://modelcontextprotocol.io/introduction) に対応した基盤モデルまたはエージェント。例: [Claude MCP](https://modelcontextprotocol.io/quickstart/server)、[OpenAI Agent SDK](https://openai.github.io/openai-agents-python/mcp/)、[Copilot Studio](https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/introducing-model-context-protocol-mcp-in-copilot-studio-simplified-integration-with-ai-apps-and-agents/)
 
@@ -531,6 +537,7 @@ Gmail to contacts "team@example.com".
 
 | 変数 | 説明 | 例 |
 |---|---|---|
+| `HDC_PATH` | HarmonyOS / OpenHarmony 用 HDC 実行ファイルの絶対パス。未設定の場合は PATH を使用します。 | `/path/to/hdc` |
 | `MOBILEMCP_AUTH` | Streamable HTTP サーバー（`--listen`）で Bearer トークンを必須にします。設定すると、すべてのリクエストが `Authorization: Bearer <token>` を送信する必要があります。 | `MOBILEMCP_AUTH=my-secret-token` |
 | `MOBILEMCP_DISABLE_TELEMETRY` | 匿名の利用テレメトリを無効にします。 | `MOBILEMCP_DISABLE_TELEMETRY=1` |
 | `MOBILEMCP_ALLOW_UNSAFE_URLS` | `mobile_open_url` が標準外の URL スキームを開くことを許可します（デフォルトではブロックされます）。 | `MOBILEMCP_ALLOW_UNSAFE_URLS=1` |
@@ -542,6 +549,7 @@ Gmail to contacts "team@example.com".
 - macOS / Linux 上の iOS シミュレーター
 - Linux / Windows / macOS 上の Android エミュレーター
 - iOS または Android の実機（適切なプラットフォームツールとドライバーが必要です）
+- HarmonyOS / OpenHarmony 実機（HDC と許可済みの USB デバッグが必要です）
 
 Mobile Next Mobile MCP を実行する前に、モバイルプラットフォームの SDK（Xcode、Android SDK）が正しくインストール・設定されていることを確認してください。
 

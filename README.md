@@ -1,10 +1,12 @@
-# Mobile Next - MCP server for Mobile Development and Automation | iOS, Android, Simulator, Emulator, and Real Devices
+# Mobile Next - MCP server for Mobile Development and Automation | iOS, Android, HarmonyOS / OpenHarmony, Simulators and Real Devices
 
 **English** | [日本語](README.ja.md) | [简体中文](README.zh-CN.md)
 
-This is an MCP Server that enables scalable mobile automation, development through a platform-agnostic interface, eliminating the need for distinct iOS or Android knowledge. You can run it on emulators, simulators, and real devices (iOS and Android).
+This MCP server provides a shared interface for mobile automation across iOS, Android, and HarmonyOS / OpenHarmony. It supports iOS and Android simulators/emulators and real devices, plus an experimental HDC backend for HarmonyOS / OpenHarmony real devices.
 
-This server allows Agents and LLMs to interact with native iOS/Android applications and devices through structured accessibility snapshots or coordinate-based taps based on screenshots.
+This server allows Agents and LLMs to interact with native iOS, Android, and HarmonyOS / OpenHarmony applications and devices through structured accessibility snapshots or coordinate-based taps based on screenshots.
+
+> **HarmonyOS / OpenHarmony on this branch:** build and run this repository locally using the [setup guide](docs/harmonyos.md). The upstream npm quick-install commands below do not include this adapter. Hardware validation is pending; recording, clipboard, location overrides and other remaining gaps are listed in the capability matrix.
 
 **Works with Claude Code, Codex, Gemini, GitHub Copilot, Antigravity** — or any MCP-compatible client.
 
@@ -66,7 +68,7 @@ Manual setup per client: [Installation and configuration](#installation-and-conf
 
 How we help to scale mobile automation:
 
-- 📲 Native app automation (iOS and Android) for testing or data-entry scenarios.
+- 📲 Native app automation (iOS, Android, and HarmonyOS / OpenHarmony) for testing or data-entry scenarios.
 - 📝 Scripted flows and form interactions without manually controlling simulators/emulators or real devices (iPhone, Samsung, Google Pixel etc)
 - 🧭 Automating multi-step user journeys driven by an LLM
 - 👆 General-purpose mobile application interaction for agent-based frameworks
@@ -75,7 +77,7 @@ How we help to scale mobile automation:
 ## Main Features
 
 - 🚀 **Accessibility-first — fast and cheap**: drives apps from the native accessibility tree (no vision model, no image tokens), falling back to screenshots + coordinates only when needed.
-- 📱 **One API, every target**: the same tools work across iOS and Android — simulators, emulators, and real devices.
+- 📱 **Shared device tools**: iOS, Android, and HarmonyOS / OpenHarmony use the same MCP interface. Available operations depend on the platform; see the [HarmonyOS capability matrix](docs/harmonyos.md).
 - 🧠 **No platform expertise required**: no XCUITest, no Espresso, no per-platform glue — describe the goal and the agent does it.
 - 🧰 **Full device control**: taps, swipes, and gestures; app install/launch/terminate; screen recording; hardware buttons; deep links; orientation.
 - 📊 **Structured, deterministic output**: reads real UI elements and extracts structured data, cutting the ambiguity of screenshot-only approaches.
@@ -93,7 +95,7 @@ How we help to scale mobile automation:
 | iOS Real Device | ✅ | Device connected over USB and trusted |
 | Android Emulator | ✅ | Android SDK + running emulator (`adb`) |
 | Android Real Device | ✅ | `adb` + USB debugging enabled & authorized |
-| Native HarmonyOS real device (local extension) | Experimental; hardware validation pending | HDC + USB debugging + UITest; [setup, Chinese text and limitations](docs/harmonyos.md) |
+| HarmonyOS / OpenHarmony real device (local extension) | Experimental; hardware validation pending | HDC + USB debugging + UITest; [setup, Chinese text and limitations](docs/harmonyos.md) |
 
 This local source extension adds a HarmonyOS HDC backend; it is not included in the upstream npm package. UI inspection, taps/double-taps, native-duration long presses, swipes, text input, PNG/JPEG screenshots, network device connections and basic app management are implemented with mocked transport tests. Real-device compatibility and Chinese text entry still require validation on the target phone. See [HarmonyOS setup and acceptance checks](docs/harmonyos.md).
 
@@ -101,6 +103,8 @@ This local source extension adds a HarmonyOS HDC backend; it is not included in 
 
 ### Device Management
 - **`mobile_list_available_devices`** - List all available devices (simulators, emulators, and real devices)
+- **`mobile_connect_harmony_device`** - Connect to an explicitly specified HarmonyOS / OpenHarmony network-debugging address and verify the connection
+- **`mobile_disconnect_harmony_device`** - Disconnect one specified network device
 - **`mobile_get_screen_size`** - Get the screen size of the mobile device in pixels
 - **`mobile_get_orientation`** - Get the current screen orientation of the device
 - **`mobile_set_orientation`** - Change the screen orientation (portrait/landscape)
@@ -139,7 +143,7 @@ This local source extension adds a HarmonyOS HDC backend; it is not included in 
 - **`mobile_open_url`** - Open http/https URLs in the device browser
 
 ### Logs & Crash Reports
-- **`mobile_get_device_logs`** - Collect live device logs (logcat on Android, unified log on iOS), optionally saved to a file
+- **`mobile_get_device_logs`** - Collect device logs (logcat on Android, unified log on iOS, HiLog on HarmonyOS), optionally saved to a file; HiLog includes buffered entries and follows live output
 - **`mobile_list_crashes`** - List crash reports available on the device
 - **`mobile_get_crash`** - Get the full content of a crash report by its ID
 - **`mobile_batch_commands`** - Run multiple tools in sequence in a single call (e.g. click, type, click), optionally listing screen elements at the end
@@ -164,6 +168,7 @@ What you will need to connect MCP with your agent and mobile devices:
 
 - [Xcode command line tools](https://developer.apple.com/xcode/resources/)
 - [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools)
+- HDC from DevEco Studio / HarmonyOS command line tools for HarmonyOS / OpenHarmony devices
 - [node.js](https://nodejs.org/en/download/) v20+
 - [MCP](https://modelcontextprotocol.io/introduction) supported foundational models or agents, like [Claude MCP](https://modelcontextprotocol.io/quickstart/server), [OpenAI Agent SDK](https://openai.github.io/openai-agents-python/mcp/), [Copilot Studio](https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/introducing-model-context-protocol-mcp-in-copilot-studio-simplified-integration-with-ai-apps-and-agents/)
 
@@ -544,6 +549,7 @@ Gmail to contacts "team@example.com".
 
 | Variable | Description | Example |
 |---|---|---|
+| `HDC_PATH` | Absolute path to the HDC executable for HarmonyOS / OpenHarmony; otherwise uses PATH. | `/path/to/hdc` |
 | `MOBILEMCP_AUTH` | Require a Bearer token on the Streamable HTTP server (`--listen`) — every request must then send `Authorization: Bearer <token>`. | `MOBILEMCP_AUTH=my-secret-token` |
 | `MOBILEMCP_DISABLE_TELEMETRY` | Disable anonymous usage telemetry. | `MOBILEMCP_DISABLE_TELEMETRY=1` |
 | `MOBILEMCP_ALLOW_UNSAFE_URLS` | Allow `mobile_open_url` to open non-standard URL schemes (blocked by default). | `MOBILEMCP_ALLOW_UNSAFE_URLS=1` |
@@ -555,6 +561,7 @@ When launched, Mobile MCP can connect to:
 - iOS Simulators on macOS/Linux
 - Android Emulators on Linux/Windows/macOS
 - iOS or Android real devices (requires proper platform tools and drivers)
+- HarmonyOS / OpenHarmony real devices through HDC, with USB debugging enabled and authorized
 
 Make sure you have your mobile platform SDKs (Xcode, Android SDK) installed and configured properly before running Mobile Next Mobile MCP.
 

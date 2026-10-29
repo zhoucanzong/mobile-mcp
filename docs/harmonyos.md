@@ -150,3 +150,11 @@ npm run build
 设备命令使用独立的退出状态校验，报告正文里的 `Error` 字样不会被误判为命令失败。权限不足、目录不存在或 HDC 返回异常均作为错误返回，不解释为零条报告；不自动提升权限或修改目录权限。商业设备能否授权该目录，需要第二阶段确认。单次输出受 HDC 的 8 MiB 限制，超过限制会报错，不返回截断报告。
 
 命名和本地时间格式依据：[系统故障日志文件命名实现](https://github.com/openharmony/hiviewdfx_hiview/blob/c33975eee421d2ba314958d3bbcba511eb2c8dca/plugins/faultlogger/service/bdfr_base/utils/faultlog_util.cpp#L105)。
+
+## 录屏适配进度
+
+录屏尚未接入。已核对原生 AVScreenCapture 文件录制接口：创建实例，注册状态与错误回调，配置 `OH_CAPTURE_FILE`、视频编码和 MP4 输出，再调用 `OH_AVScreenCapture_StartScreenRecording`；停止使用 `OH_AVScreenCapture_StopScreenRecording`，随后释放实例并确认文件收尾。工具只有在收到 STARTED 状态后才能报告开始成功，取消授权和错误回调必须返回失败。
+
+后续实现需要设备端原生执行组件、SDK 构建与部署路径、停止/限时控制、HDC 文件回收以及主机端协议测试。不能仅将通用 `screenrecord` 命令假定为所有鸿蒙系统自带能力，也不能将一组截图作为原生录屏成功证据。商业设备执行权限和授权流程仍需第二阶段确认。
+
+接口依据：[AVScreenCapture C API](https://github.com/openharmony/multimedia_player_framework/blob/9f9a285ff489afa66861a85dcc4213336a463b36/interfaces/kits/c/native_avscreen_capture.h)、[配置及状态定义](https://github.com/openharmony/multimedia_player_framework/blob/9f9a285ff489afa66861a85dcc4213336a463b36/interfaces/kits/c/native_avscreen_capture_base.h)。

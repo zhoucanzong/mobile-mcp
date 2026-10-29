@@ -1,10 +1,12 @@
-# Mobile Next - 用于移动开发与自动化的 MCP 服务器 | iOS、Android、模拟器、仿真器与真机
+# Mobile Next - 用于移动开发与自动化的 MCP 服务器 | iOS、Android、鸿蒙 / OpenHarmony、模拟器与真机
 
 [English](README.md) | [日本語](README.ja.md) | **简体中文**
 
-这是一个 MCP 服务器，它通过与平台无关的接口实现可扩展的移动自动化与开发，让你无需掌握 iOS 或 Android 的专门知识。你可以在仿真器、模拟器以及真机（iOS 和 Android）上运行它。
+这是一个为 iOS、Android 和鸿蒙 / OpenHarmony 提供统一移动自动化接口的 MCP 服务器。支持 iOS、Android 的模拟器、仿真器和真机，并通过实验性的 HDC 后端接入鸿蒙 / OpenHarmony 真机。
 
-该服务器让智能体和 LLM 能够通过结构化的无障碍（accessibility）快照，或基于截图的坐标点击，来与原生 iOS/Android 应用和设备交互。
+该服务器让智能体和 LLM 能够通过结构化的无障碍（accessibility）快照，或基于截图的坐标点击，来与原生 iOS、Android 和鸿蒙 / OpenHarmony 应用和设备交互。
+
+> **本分支的鸿蒙 / OpenHarmony 支持：**请按[接入说明](docs/harmonyos.md)构建并运行本仓库。下方上游 npm 快速安装命令不包含本分支适配。当前已完成的功能仍待真机验证；录屏、剪贴板、定位覆盖等剩余差异见功能对照。
 
 **支持 Claude Code、Codex、Gemini、GitHub Copilot、Antigravity** —— 以及任何兼容 MCP 的客户端。
 
@@ -57,7 +59,7 @@ npx @mobilenext/mobile-mcp@latest install
 
 我们如何帮助你扩展移动自动化:
 
-- 📲 面向测试或数据录入场景的原生应用自动化（iOS 和 Android）
+- 📲 面向测试或数据录入场景的原生应用自动化（iOS、Android 和鸿蒙 / OpenHarmony）
 - 📝 无需手动操作模拟器/仿真器或真机（iPhone、三星、Google Pixel 等）即可执行的脚本化流程与表单交互
 - 🧭 由 LLM 驱动的多步骤用户旅程自动化
 - 👆 面向智能体框架的通用移动应用交互能力
@@ -66,7 +68,7 @@ npx @mobilenext/mobile-mcp@latest install
 ## 主要特性
 
 - 🚀 **无障碍优先 —— 快速且低成本**: 基于原生无障碍树驱动应用（无需视觉模型，不消耗图像 token），仅在必要时回退到截图 + 坐标方式。
-- 📱 **一套 API，覆盖所有目标**: 同一套工具同时适用于 iOS 和 Android —— 模拟器、仿真器和真机皆可。
+- 📱 **统一设备工具接口**: iOS、Android 和鸿蒙 / OpenHarmony 使用同一套 MCP 接口。可用操作取决于平台，详见[鸿蒙功能对照](docs/harmonyos.md)。
 - 🧠 **无需平台专业知识**: 不需要 XCUITest，不需要 Espresso，也不需要各平台的胶水代码 —— 描述目标，智能体来完成。
 - 🧰 **完整的设备控制**: 点击、滑动与手势；应用安装/启动/终止；屏幕录制；硬件按键；深度链接；屏幕方向。
 - 📊 **结构化、确定性的输出**: 读取真实的 UI 元素并提取结构化数据，减少纯截图方案带来的歧义。
@@ -84,7 +86,7 @@ npx @mobilenext/mobile-mcp@latest install
 | iOS 真机 | ✅ | 通过 USB 连接并已信任的设备 |
 | Android 仿真器 | ✅ | Android SDK 以及运行中的仿真器 (`adb`) |
 | Android 真机 | ✅ | `adb`，并已启用并授权 USB 调试 |
-| 原生鸿蒙真机（本地改造） | 实验性，待真机验收 | HDC + USB 调试 + UITest；参见[鸿蒙接入与中文支持](docs/harmonyos.md) |
+| 鸿蒙 / OpenHarmony 真机（本地改造） | 实验性，待真机验收 | HDC + USB 调试 + UITest；参见[鸿蒙接入与中文支持](docs/harmonyos.md) |
 
 本地源码新增的鸿蒙后端支持设备发现、界面读取、点击、双击、原生长按、滑动、输入、PNG/JPEG 截图、网络设备连接和基础应用管理，尚未发布到 npm。中文读取使用 Unicode；中文输入受设备后端影响，需要在目标手机验证。工具说明和多数错误提示仍是英文。[完整范围与验收步骤](docs/harmonyos.md)
 
@@ -92,6 +94,8 @@ npx @mobilenext/mobile-mcp@latest install
 
 ### 设备管理
 - **`mobile_list_available_devices`** - 列出所有可用设备（模拟器、仿真器和真机）
+- **`mobile_connect_harmony_device`** - 连接指定地址的鸿蒙 / OpenHarmony 网络调试设备并核验连接状态
+- **`mobile_disconnect_harmony_device`** - 断开指定的一台网络设备
 - **`mobile_get_screen_size`** - 获取移动设备的屏幕尺寸（像素）
 - **`mobile_get_orientation`** - 获取设备当前的屏幕方向
 - **`mobile_set_orientation`** - 更改屏幕方向（竖屏/横屏）
@@ -129,7 +133,7 @@ npx @mobilenext/mobile-mcp@latest install
 - **`mobile_open_url`** - 在设备浏览器中打开 URL
 
 ### 日志与崩溃报告
-- **`mobile_get_device_logs`** - 采集设备实时日志（Android 上为 logcat，iOS 上为 unified log），可选择保存到文件
+- **`mobile_get_device_logs`** - 采集设备日志（Android 为 logcat，iOS 为 unified log，鸿蒙为 HiLog），可选择保存到文件；HiLog 包含已有缓冲区记录并继续读取实时输出
 - **`mobile_list_crashes`** - 列出设备上可用的崩溃报告
 - **`mobile_get_crash`** - 按 ID 获取崩溃报告的完整内容
 - **`mobile_batch_commands`** - 在一次调用中按顺序运行多个工具（例如点击、输入、点击），可选择在最后列出屏幕元素
@@ -154,6 +158,7 @@ npx @mobilenext/mobile-mcp@latest install
 
 - [Xcode 命令行工具](https://developer.apple.com/xcode/resources/)
 - [Android Platform Tools](https://developer.android.com/tools/releases/platform-tools)
+- 鸿蒙 / OpenHarmony 设备需要 DevEco Studio SDK 或命令行工具中的 HDC
 - [node.js](https://nodejs.org/en/download/) v20 及以上
 - 支持 [MCP](https://modelcontextprotocol.io/introduction) 的基础模型或智能体，例如 [Claude MCP](https://modelcontextprotocol.io/quickstart/server)、[OpenAI Agent SDK](https://openai.github.io/openai-agents-python/mcp/)、[Copilot Studio](https://www.microsoft.com/en-us/microsoft-copilot/blog/copilot-studio/introducing-model-context-protocol-mcp-in-copilot-studio-simplified-integration-with-ai-apps-and-agents/)
 
@@ -534,6 +539,7 @@ Gmail to contacts "team@example.com".
 
 | 变量 | 说明 | 示例 |
 |---|---|---|
+| `HDC_PATH` | 鸿蒙 / OpenHarmony 使用的 HDC 可执行文件绝对路径；未设置时从 PATH 查找。 | `/path/to/hdc` |
 | `MOBILEMCP_AUTH` | 要求 Streamable HTTP 服务器（`--listen`）使用 Bearer token —— 设置后每个请求都必须发送 `Authorization: Bearer <token>`。 | `MOBILEMCP_AUTH=my-secret-token` |
 | `MOBILEMCP_DISABLE_TELEMETRY` | 关闭匿名使用情况遥测。 | `MOBILEMCP_DISABLE_TELEMETRY=1` |
 | `MOBILEMCP_ALLOW_UNSAFE_URLS` | 允许 `mobile_open_url` 打开非标准的 URL scheme（默认被阻止）。 | `MOBILEMCP_ALLOW_UNSAFE_URLS=1` |
@@ -545,6 +551,7 @@ Gmail to contacts "team@example.com".
 - macOS/Linux 上的 iOS 模拟器
 - Linux/Windows/macOS 上的 Android 仿真器
 - iOS 或 Android 真机（需要相应的平台工具和驱动）
+- 鸿蒙 / OpenHarmony 真机（通过 HDC，开启并授权 USB 调试）
 
 在运行 Mobile Next Mobile MCP 之前，请确保已正确安装并配置移动平台 SDK（Xcode、Android SDK）。
 
