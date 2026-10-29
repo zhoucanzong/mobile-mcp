@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { Hdc, validateHdcTarget } from "./hdc";
 import { PNG } from "./png";
+import { collectHarmonyLogs } from "./harmony-logs";
 import { ActionableError, Button, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
 
 export const HARMONY_DEVICE_PREFIX = "harmony:";
@@ -279,6 +280,10 @@ export class HarmonyRobot implements Robot {
 	public async getOrientation(): Promise<Orientation> {
 		const size = await this.getScreenSize();
 		return size.width > size.height ? "landscape" : "portrait";
+	}
+
+	public async getLogs(limit: number, filters: string[], timeoutMs: number): Promise<string> {
+		return collectHarmonyLogs(this.hdc, this.target, limit, filters, timeoutMs);
 	}
 
 	public async setOrientation(orientation: Orientation): Promise<void> {

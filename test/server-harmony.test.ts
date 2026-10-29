@@ -7,11 +7,15 @@ import { Hdc } from "../src/hdc";
 import { Mobilecli } from "../src/mobilecli";
 import { createMcpServer } from "../src/server";
 import type { Robot } from "../src/robot";
+import { EventEmitter } from "node:events";
+import { PassThrough } from "node:stream";
+import type { ChildProcess } from "node:child_process";
 
 const originalHdcExecute = Hdc.prototype.executeCommand;
 const originalHdcShell = Hdc.prototype.shell;
 const originalVersion = Mobilecli.prototype.getVersion;
 const originalDevices = Mobilecli.prototype.getDevices;
+const originalSpawnShell = Hdc.prototype.spawnShell;
 const originalTelemetry = process.env.MOBILEMCP_DISABLE_TELEMETRY;
 
 test.beforeEach(() => {
@@ -36,6 +40,7 @@ test.afterEach(() => {
 	Hdc.prototype.shell = originalHdcShell;
 	Mobilecli.prototype.getVersion = originalVersion;
 	Mobilecli.prototype.getDevices = originalDevices;
+	Hdc.prototype.spawnShell = originalSpawnShell;
 	if (originalTelemetry === undefined) {
 		delete process.env.MOBILEMCP_DISABLE_TELEMETRY;
 	} else {
@@ -81,6 +86,29 @@ test("merges Android/iOS discovery with HarmonyOS", async () => {
 	await withClient(async client => {
 		const result: any = await client.callTool({ name: "mobile_list_available_devices", arguments: {} });
 		expect(JSON.parse(result.content[0].text).devices.map((device: any) => device.platform)).toEqual(["harmonyos", "android"]);
+	});
+});
+
+test("routes the MCP log tool through HiLog and returns filtered NDJSON", async () => {
+	const child = Object.assign(new EventEmitter(), {
+		stdout: new PassThrough(), stderr: new PassThrough(), exitCode: null, signalCode: null as string | null,
+		kill(signal: string) {
+			this.signalCode = signal;
+			queueMicrotask(() => this.emit("close", null));
+			return true;
+		},
+	});
+	Hdc.prototype.spawnShell = (target, args) => {
+		expect(target).toBe("MATE60");
+		expect(args).toEqual(["hilog", "-v", "epoch"]);
+		queueMicrotask(() => child.stdout.write("1700000000.1 123 124 I C01800/APP: 中文日志\n"));
+		return child as unknown as ChildProcess;
+	};
+	await withClient(async client => {
+		const result: any = await client.callTool({ name: "mobile_get_device_logs", arguments: { device: "harmony:MATE60", limit: 1, filter: ["message=中文"] } });
+		expect(result.isError).not.toBe(true);
+		expect(JSON.parse(result.content[0].text)).toMatchObject({ pid: "123", message: "中文日志" });
+		expect(child.signalCode).toBe("SIGTERM");
 	});
 });
 
@@ -140,7 +168,6 @@ test("unsupported HarmonyOS tools return errors instead of falling through to mo
 			{ name: "mobile_fold_device", args: { posture: "open" } },
 			{ name: "mobile_set_location", args: {} },
 			{ name: "mobile_clipboard", args: {} },
-			{ name: "mobile_get_device_logs", args: {} },
 			{ name: "mobile_start_screen_recording", args: {} },
 			{ name: "mobile_stop_screen_recording", args: {} },
 			{ name: "mobile_list_crashes", args: {} },

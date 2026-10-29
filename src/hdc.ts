@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn, ChildProcess } from "node:child_process";
 import { ActionableError } from "./robot";
 
 // hdc shell forwards a command string to the device shell, even though the
@@ -18,6 +18,13 @@ export const validateHdcTarget = (target: string): void => {
 };
 
 export class Hdc {
+	public spawnShell(target: string, args: string[]): ChildProcess {
+		validateHdcTarget(target);
+		return spawn(process.env.HDC_PATH || "hdc", ["-t", target, "shell", args.map(quoteHdcArgument).join(" ")], {
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+	}
+
 	public executeCommand(args: string[], timeout = 30000): Buffer {
 		try {
 			const output = execFileSync(process.env.HDC_PATH || "hdc", args, {

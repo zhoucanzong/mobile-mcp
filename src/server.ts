@@ -95,7 +95,7 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG screenshots, app management and URLs. Recording, crash reports, clipboard,
+PNG screenshots, HiLog device logs, app management and URLs. Recording, crash reports, clipboard,
 GPS override, folding, custom-duration long press and setting orientation
 are not supported by this backend. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
@@ -1171,7 +1171,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 	tool(
 		"mobile_get_device_logs",
 		"Get Device Logs",
-		"Collect live device logs (logcat on Android, unified log on iOS) as one JSON object per line. Only logs emitted after the call starts are captured, so trigger the behavior you want to observe right before or during the call. Stops after `limit` entries or after 30 seconds of silence. Each line of a stack trace counts as one entry, so filter by process or tag to avoid filling the limit with noise. Start with a small limit (20-50) for a quick look. For large captures, pass `saveTo` to write logs to a file and only the entry count is returned.",
+		"Collect device logs (logcat on Android, unified log on iOS, HiLog on HarmonyOS) as one JSON object per line. HarmonyOS includes existing HiLog buffered entries then follows live output, stops at the limit or a fixed 30-second deadline, and supports pid/tag/level/subsystem(domain)/message filters; process/category are unavailable. The remaining live-only and silence-timeout semantics apply to Android/iOS. Only logs emitted after the call starts are captured, so trigger the behavior you want to observe right before or during the call. Stops after `limit` entries or after 30 seconds of silence. Each line of a stack trace counts as one entry, so filter by process or tag to avoid filling the limit with noise. Start with a small limit (20-50) for a quick look. For large captures, pass `saveTo` to write logs to a file and only the entry count is returned.",
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
 			limit: z.number().int().min(1).max(MAX_DEVICE_LOG_ENTRIES).default(DEFAULT_DEVICE_LOG_ENTRIES).describe("Stop after this many log entries"),
