@@ -6,7 +6,7 @@
 
 该服务器让智能体和 LLM 能够通过结构化的无障碍（accessibility）快照，或基于截图的坐标点击，来与原生 iOS、Android 和鸿蒙 / OpenHarmony 应用和设备交互。
 
-> **本分支的鸿蒙 / OpenHarmony 支持：**请按[接入说明](docs/harmonyos.md)构建并运行本仓库。下方上游 npm 快速安装命令不包含本分支适配。当前功能仍待真机验证；原生录屏需要 SDK 构建的设备组件，剪贴板、定位覆盖等剩余差异见功能对照。
+> **本分支的鸿蒙 / OpenHarmony 支持：**请按[接入说明](docs/harmonyos.md)构建并运行本仓库。下方上游 npm 快速安装命令不包含本分支适配。当前功能仍待真机验证；原生录屏需要 SDK 构建的设备组件，定位覆盖等剩余差异见功能对照。
 
 **支持 Claude Code、Codex、Gemini、GitHub Copilot、Antigravity** —— 以及任何兼容 MCP 的客户端。
 
@@ -101,7 +101,7 @@ npx @mobilenext/mobile-mcp@latest install
 - **`mobile_set_orientation`** - 更改屏幕方向（竖屏/横屏）；鸿蒙要求开发者模式及显示服务支持，并确认方向实际变化
 - **`mobile_fold_device`** - 折叠状态控制；鸿蒙在支持的设备上模拟指定状态并确认结果，不会机械地折叠手机
 - **`mobile_set_location`** - 覆盖设备上报的 GPS 位置，或清除该覆盖
-- **`mobile_clipboard`** - 读取或替换设备剪贴板内容
+- **`mobile_clipboard`** - 读取或替换设备剪贴板内容；鸿蒙使用系统剪贴板命令，写入后回读确认
 
 ### 远程设备（Mobile Next Cloud）
 - **`mobile_login_to_cloud_provider`** - 将本机与云设备提供方进行认证（基于浏览器的设备码登录）
@@ -541,6 +541,7 @@ Gmail to contacts "team@example.com".
 | 变量 | 说明 | 示例 |
 |---|---|---|
 | `HARMONY_RECORDER_PATH` | SDK 构建的鸿蒙原生录屏组件绝对路径；录屏时必需，SDK/设备验证待完成。 | `/path/to/mobile-mcp-recorder` |
+| `HARMONY_PASTEBOARD_COMMAND` | 设备侧剪贴板工具路径或命令名；要求系统提供工具并允许读取。 | `/system/bin/cli_tool/executable/ohos-pasteboard` |
 | `HDC_PATH` | 鸿蒙 / OpenHarmony 使用的 HDC 可执行文件绝对路径；未设置时从 PATH 查找。 | `/path/to/hdc` |
 | `MOBILEMCP_AUTH` | 要求 Streamable HTTP 服务器（`--listen`）使用 Bearer token —— 设置后每个请求都必须发送 `Authorization: Bearer <token>`。 | `MOBILEMCP_AUTH=my-secret-token` |
 | `MOBILEMCP_DISABLE_TELEMETRY` | 关闭匿名使用情况遥测。 | `MOBILEMCP_DISABLE_TELEMETRY=1` |

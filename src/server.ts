@@ -95,8 +95,7 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), verified orientation control, named fold-state simulation on supported hardware, focused app inspection, crash reports (requires system log read permission), app management and URLs. Clipboard,
-GPS override and custom-duration long press
+PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), verified plain-text clipboard access (requires system command and permission), verified orientation control, named fold-state simulation on supported hardware, focused app inspection, crash reports (requires system log read permission), app management and URLs. GPS override and custom-duration long press
 are not supported by this backend. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
 input succeeded until you have checked the resulting screen.
@@ -1185,7 +1184,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 	tool(
 		"mobile_clipboard",
 		"Clipboard",
-		"Read or replace the device clipboard. Pass text to set the clipboard, omit it to read the current clipboard.",
+		"Read or replace the device clipboard. Pass text to set the clipboard, omit it to read the current clipboard. HarmonyOS uses the system pasteboard command, verifies writes by reading back, supports up to 64 KiB UTF-8 without NUL, and clears data for an empty string. The literal --help is reserved by that system command.",
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
 			text: z.string().optional().describe("Text to place on the clipboard. Omit to read the clipboard instead."),

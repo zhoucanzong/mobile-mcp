@@ -9,6 +9,7 @@ import { getJpegDimensions } from "./jpeg";
 import { collectHarmonyLogs } from "./harmony-logs";
 import { HarmonyCrashes, HarmonyCrash } from "./harmony-crashes";
 import { HarmonyRecording, RecordingResult } from "./harmony-recording";
+import { HarmonyClipboard } from "./harmony-clipboard";
 import { ActionableError, Button, FoldPosture, ForegroundApp, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
 
 export const HARMONY_DEVICE_PREFIX = "harmony:";
@@ -393,6 +394,14 @@ export class HarmonyRobot implements Robot {
 
 	public getCrash(id: string): string {
 		return new HarmonyCrashes(this.hdc, this.target).read(id);
+	}
+
+	public async getClipboard(): Promise<string> {
+		return new HarmonyClipboard(this.hdc, this.target).get();
+	}
+
+	public async setClipboard(text: string): Promise<void> {
+		return new HarmonyClipboard(this.hdc, this.target).set(text);
 	}
 
 	public hasRecording(): boolean { return this.recording?.isBusy() ?? false; }

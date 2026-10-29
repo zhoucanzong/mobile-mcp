@@ -167,7 +167,6 @@ test("unsupported HarmonyOS tools return errors instead of falling through to mo
 	await withClient(async client => {
 		const cases = [
 			{ name: "mobile_set_location", args: {} },
-			{ name: "mobile_clipboard", args: {} },
 		];
 		for (const { name, args } of cases) {
 			const result: any = await client.callTool({ name, arguments: { device: "harmony:MATE60", ...args } });
@@ -456,4 +455,28 @@ test("routes orientation and named fold posture through the HarmonyOS display se
 	} finally {
 		HarmonyRobot.prototype.getOrientation = original;
 	}
+});
+
+test("reads, clears and verifies the HarmonyOS clipboard through MCP", async () => {
+	let clipboard = "中文剪贴板🙂\n";
+	Hdc.prototype.shellChecked = (_target, args) => {
+		if (args[1] === "clear-data") {
+			clipboard = "";
+			return JSON.stringify({ type: "result", status: "success", data: {} });
+		}
+
+		return JSON.stringify({ type: "result", status: "success", data: { recordCount: 1, records: [{ mimeType: "text/plain", plainText: clipboard }] } });
+	};
+	await withClient(async client => {
+		const read: any = await client.callTool({ name: "mobile_clipboard", arguments: { device: "harmony:MATE60" } });
+		expect(read.isError).not.toBe(true);
+		expect(read.content[0].text).toBe(clipboard);
+		const clear: any = await client.callTool({ name: "mobile_clipboard", arguments: { device: "harmony:MATE60", text: "" } });
+		expect(clear.isError).not.toBe(true);
+		expect(clipboard).toBe("");
+		Hdc.prototype.shellChecked = () => JSON.stringify({ type: "result", status: "failed", errCode: "ERR_PERMISSION_DENIED", errMsg: "no read permission" });
+		const denied: any = await client.callTool({ name: "mobile_clipboard", arguments: { device: "harmony:MATE60" } });
+		expect(denied.isError).toBe(true);
+		expect(denied.content[0].text).toContain("ERR_PERMISSION_DENIED");
+	});
 });

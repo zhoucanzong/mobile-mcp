@@ -55,7 +55,7 @@ npm run build
 | 打开网址 | `aa start -A ohos.want.action.viewData -U` | 上层仍默认仅允许 HTTP/HTTPS |
 | 批量执行 | 复用 `mobile_batch_commands` | 使用元素引用的步骤之间需要重新读取元素，或使用已知坐标 |
 
-暂不支持：自定义时长长按、剪贴板工具和定位覆盖。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
+暂不支持：自定义时长长按和定位覆盖。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
 
 每次操作后会清除鸿蒙元素引用；按引用操作前还会重新读取布局。如果布局与引用来自的快照不同，会要求重新读取元素。界面持续变化时，可读取新快照后根据坐标操作；操作与布局校验之间仍可能发生变化。stdio 连接和 HTTP 请求均保留设备引用上下文；共享设备的客户端仍需协调操作，同一设备没有并发操作隔离。
 
@@ -89,7 +89,7 @@ npm run build
 | `mobile_batch_commands` | 已实现：复用统一工具回调 |
 | `mobile_get_foreground_app` | 已实现：默认显示屏焦点窗口 ID 与 UI 树包名、Ability 对应，焦点变化或对应不唯一时报错 |
 | `mobile_set_orientation` | 已实现：开发者模式显示服务方向注入，并通过屏幕宽高确认结果；不修改旋转锁定 |
-| `mobile_clipboard` | 待适配，明确返回不支持；不等同于 UITest 内部输入机制 |
+| `mobile_clipboard` | 已实现：系统纯文本剪贴板读写、清空与回读校验；要求 ohos-pasteboard 及读取权限 |
 | `mobile_get_device_logs` | 已实现：HiLog 缓冲区及实时流，NDJSON，筛选及 30 秒固定期限 |
 | `mobile_set_location` | 待适配，明确返回不支持 |
 | `mobile_fold_device` | 已实现：支持设备上的 named posture 状态模拟并核对返回值；不支持任意铰链角度，非折叠设备不能提供该能力 |
@@ -170,3 +170,13 @@ npm run build
 折叠工具使用显示服务的 `-p`、`-z`、`-y` 分别请求 folded、half-open、open，并要求服务返回匹配的 `currentFoldStatus`。这是系统状态模拟，不会机械地折叠手机；Mate 60 Pro 这类非折叠机型不能提供折叠硬件能力，实际调用应按设备结果报错。任意数值铰链角度不作近似处理，会明确拒绝。
 
 模拟测试覆盖接口检查、状态确认、锁定或未响应、错误状态以及 MCP 调用。商业系统版本仍需第二阶段验证。接口依据：[显示服务的开发者命令与状态输出](https://github.com/openharmony/window_window_manager/blob/8b0d8fe1b973d865904c942c286b3d2a3b9b08e7/window_scene/screen_session_manager/src/screen_session_dumper.cpp)、[FoldStatus 定义](https://github.com/openharmony/window_window_manager/blob/8b0d8fe1b973d865904c942c286b3d2a3b9b08e7/interfaces/innerkits/dm/dm_common.h#L492)。
+
+## 系统剪贴板
+
+剪贴板工具使用设备系统命令 `ohos-pasteboard`，默认路径 `/system/bin/cli_tool/executable/ohos-pasteboard`；可用 `HARMONY_PASTEBOARD_COMMAND` 指定设备上另一兼容版本的可执行文件路径或单个命令名（不是主机路径或带参数命令）。设备是否提供这个命令及 `ohos.permission.READ_PASTEBOARD` 权限，需要第二阶段确认。未提供或无权限时明确报错，不以应用内临时变量代替系统剪贴板。
+
+读取返回按记录顺序找到的第一个纯文本表示，保留中文、Emoji、空格和换行。明确的无数据状态返回空字符串；非文本剪贴板不会被伪装成空内容。设置空字符串会清空系统剪贴板，设置非空文本会替换其内容，并回读逐字确认。写入已被接受但无读权限或内容被其他应用改变时，会明确报告“已接受但无法验证”，不自动重试覆盖。
+
+写入上限为 64 KiB UTF-8，不接受 NUL 或无效 Unicode。为保留尾部换行和避免 shell 解释文本，写入通过独立临时文本文件传输；结束后清理主机及设备文件，清理失败会报告。系统命令将单独的 `--help` 参数作为帮助选项，当前适配会在任何写入前拒绝这一字面文本，不替换字符或报告成功。
+
+接口及错误结构依据：[系统剪贴板命令文档](https://github.com/openharmony/distributeddatamgr_pasteboard/blob/c2cd4f0174c4d0a40dba8a08ebb16b89fad7b91c/tools/ohos-pasteboard/docs/README.md)、[命令清单与权限](https://github.com/openharmony/distributeddatamgr_pasteboard/blob/c2cd4f0174c4d0a40dba8a08ebb16b89fad7b91c/tools/ohos-pasteboard/ohos-pasteboard.json)。

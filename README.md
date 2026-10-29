@@ -6,7 +6,7 @@ This MCP server provides a shared interface for mobile automation across iOS, An
 
 This server allows Agents and LLMs to interact with native iOS, Android, and HarmonyOS / OpenHarmony applications and devices through structured accessibility snapshots or coordinate-based taps based on screenshots.
 
-> **HarmonyOS / OpenHarmony on this branch:** build and run this repository locally using the [setup guide](docs/harmonyos.md). The upstream npm quick-install commands below do not include this adapter. Hardware validation is pending. Native recording requires a device-SDK-built helper; clipboard, location overrides and other remaining gaps are listed in the capability matrix.
+> **HarmonyOS / OpenHarmony on this branch:** build and run this repository locally using the [setup guide](docs/harmonyos.md). The upstream npm quick-install commands below do not include this adapter. Hardware validation is pending. Native recording requires a device-SDK-built helper; location overrides and other remaining gaps are listed in the capability matrix.
 
 **Works with Claude Code, Codex, Gemini, GitHub Copilot, Antigravity** — or any MCP-compatible client.
 
@@ -110,7 +110,7 @@ This local source extension adds a HarmonyOS HDC backend; it is not included in 
 - **`mobile_set_orientation`** - Change the screen orientation (portrait/landscape); HarmonyOS requires developer-mode display support and verifies the resulting orientation
 - **`mobile_fold_device`** - Foldable-device control; HarmonyOS simulates named postures on compatible hardware and verifies the reported state, without moving a physical hinge
 - **`mobile_set_location`** - Override the GPS location reported by the device, or clear the override
-- **`mobile_clipboard`** - Read or replace the device clipboard
+- **`mobile_clipboard`** - Read or replace the device clipboard; HarmonyOS uses the system pasteboard command and verifies writes by readback
 
 ### Remote Devices (Mobile Next Cloud)
 - **`mobile_login_to_cloud_provider`** - Authenticate this machine with the cloud device provider (browser-based device-code login)
@@ -550,6 +550,7 @@ Gmail to contacts "team@example.com".
 | Variable | Description | Example |
 |---|---|---|
 | `HARMONY_RECORDER_PATH` | Absolute path to the SDK-built native HarmonyOS recorder; required for recording. SDK/device validation is pending. | `/path/to/mobile-mcp-recorder` |
+| `HARMONY_PASTEBOARD_COMMAND` | Device-side clipboard executable path or command name; requires the system tool and read permission. | `/system/bin/cli_tool/executable/ohos-pasteboard` |
 | `HDC_PATH` | Absolute path to the HDC executable for HarmonyOS / OpenHarmony; otherwise uses PATH. | `/path/to/hdc` |
 | `MOBILEMCP_AUTH` | Require a Bearer token on the Streamable HTTP server (`--listen`) — every request must then send `Authorization: Bearer <token>`. | `MOBILEMCP_AUTH=my-secret-token` |
 | `MOBILEMCP_DISABLE_TELEMETRY` | Disable anonymous usage telemetry. | `MOBILEMCP_DISABLE_TELEMETRY=1` |
