@@ -96,7 +96,8 @@ npx @mobilenext/mobile-mcp@latest install
 - **`mobile_disconnect_harmony_device`** - 指定した 1 台のネットワークデバイスを切断します
 - **`mobile_get_screen_size`** - モバイルデバイスの画面サイズをピクセル単位で取得します
 - **`mobile_get_orientation`** - デバイスの現在の画面の向きを取得します
-- **`mobile_set_orientation`** - 画面の向きを変更します（縦向き / 横向き）
+- **`mobile_set_orientation`** - 画面の向きを変更します。HarmonyOS は開発者モードと表示サービスを確認し、変更後の向きを検証します
+- **`mobile_fold_device`** - 折りたたみ状態を制御します。HarmonyOS は対応機器で状態を模擬し結果を確認します。物理的にヒンジを動かす機能ではありません
 - **`mobile_set_location`** - デバイスが報告する GPS 位置情報を上書きする、または上書きを解除します
 - **`mobile_clipboard`** - デバイスのクリップボードを読み取る、または置き換えます
 

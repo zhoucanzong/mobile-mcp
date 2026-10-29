@@ -107,8 +107,8 @@ This local source extension adds a HarmonyOS HDC backend; it is not included in 
 - **`mobile_disconnect_harmony_device`** - Disconnect one specified network device
 - **`mobile_get_screen_size`** - Get the screen size of the mobile device in pixels
 - **`mobile_get_orientation`** - Get the current screen orientation of the device
-- **`mobile_set_orientation`** - Change the screen orientation (portrait/landscape)
-- **`mobile_fold_device`** - Fold or unfold a foldable device (iPhone Duo simulators, foldable Android emulators)
+- **`mobile_set_orientation`** - Change the screen orientation (portrait/landscape); HarmonyOS requires developer-mode display support and verifies the resulting orientation
+- **`mobile_fold_device`** - Foldable-device control; HarmonyOS simulates named postures on compatible hardware and verifies the reported state, without moving a physical hinge
 - **`mobile_set_location`** - Override the GPS location reported by the device, or clear the override
 - **`mobile_clipboard`** - Read or replace the device clipboard
 

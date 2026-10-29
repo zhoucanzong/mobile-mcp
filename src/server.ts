@@ -95,8 +95,8 @@ HarmonyOS devices have ids starting with "harmony:". Use HDC/UITest, not adb,
 for these devices. Chinese UI text is preserved; text input requires UITest
 uiInput text (API 18+). HarmonyOS currently supports UI inspection, coordinate
 and ref taps/double-taps/default-duration long presses, swipes, text input, selected hardware buttons,
-PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), focused app inspection, crash reports (requires system log read permission), app management and URLs. Clipboard,
-GPS override, folding, custom-duration long press and setting orientation
+PNG/JPEG screenshots, HiLog device logs, native recording (requires HARMONY_RECORDER_PATH and device permission), verified orientation control, named fold-state simulation on supported hardware, focused app inspection, crash reports (requires system log read permission), app management and URLs. Clipboard,
+GPS override and custom-duration long press
 are not supported by this backend. Ask for a fresh UI snapshot after each
 action before using another ref. Do not claim a device action or Chinese
 input succeeded until you have checked the resulting screen.
@@ -1105,7 +1105,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 	tool(
 		"mobile_set_orientation",
 		"Set Orientation",
-		"Change the screen orientation of the device",
+		"Change the screen orientation of the device. HarmonyOS requires developer-mode display-service support and confirms the resulting screen orientation; auto-rotation or app restrictions may prevent the change. It does not change rotation-lock settings.",
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
 			orientation: z.enum(["portrait", "landscape"]).describe("The desired orientation"),
@@ -1121,7 +1121,7 @@ export const createMcpServer = (options: { robotCache?: Map<string, Robot> } = {
 	tool(
 		"mobile_fold_device",
 		"Fold Device",
-		"Fold or unfold a foldable device, such as iPhone Duo simulators and foldable Android emulators. Provide either posture or angle.",
+		"Fold or unfold a foldable device, such as iPhone Duo simulators and foldable Android emulators. Provide either posture or angle. HarmonyOS supports named-posture simulation on compatible foldable devices in developer mode; it does not physically move the hinge or support exact angles.",
 		{
 			device: z.string().describe("The device identifier to use. Use mobile_list_available_devices to find which devices are available to you."),
 			posture: z.enum(["folded", "half-open", "open"]).optional().describe("The desired hinge posture: folded (0 degrees), half-open (90 degrees) or open (180 degrees)"),

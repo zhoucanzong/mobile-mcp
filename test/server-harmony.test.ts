@@ -166,8 +166,6 @@ test("batches coordinate tap, Chinese input and submit through HDC", async () =>
 test("unsupported HarmonyOS tools return errors instead of falling through to mobilecli", async () => {
 	await withClient(async client => {
 		const cases = [
-			{ name: "mobile_set_orientation", args: { orientation: "landscape" } },
-			{ name: "mobile_fold_device", args: { posture: "open" } },
 			{ name: "mobile_set_location", args: {} },
 			{ name: "mobile_clipboard", args: {} },
 		];
@@ -422,5 +420,40 @@ test("starts and collects native recording across HTTP-style server instances", 
 		}
 
 		fs.rmSync(directory, { recursive: true, force: true });
+	}
+});
+
+test("routes orientation and named fold posture through the HarmonyOS display service", async () => {
+	const original = HarmonyRobot.prototype.getOrientation;
+	let current: "portrait" | "landscape" = "portrait";
+	HarmonyRobot.prototype.getOrientation = async () => current;
+	Hdc.prototype.shellChecked = (_target, args) => {
+		if (args[0] === "param") {
+			return "true";
+		}
+
+		if (args[4] === "-h") {
+			return " -motion set sensor\n -y expand\n";
+		}
+
+		if (args[4] === "-motion,1") {
+			current = "landscape";
+			return "";
+		}
+
+		return "currentFoldStatus is: 1\n";
+	};
+	try {
+		await withClient(async client => {
+			const orientation: any = await client.callTool({ name: "mobile_set_orientation", arguments: { device: "harmony:MATE60", orientation: "landscape" } });
+			expect(orientation.isError).not.toBe(true);
+			expect(current).toBe("landscape");
+			const fold: any = await client.callTool({ name: "mobile_fold_device", arguments: { device: "harmony:MATE60", posture: "open" } });
+			expect(fold.isError).not.toBe(true);
+			const angle: any = await client.callTool({ name: "mobile_fold_device", arguments: { device: "harmony:MATE60", angle: 90 } });
+			expect(angle.isError).toBe(true);
+		});
+	} finally {
+		HarmonyRobot.prototype.getOrientation = original;
 	}
 });

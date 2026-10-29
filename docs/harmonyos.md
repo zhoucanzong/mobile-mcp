@@ -55,7 +55,7 @@ npm run build
 | 打开网址 | `aa start -A ohos.want.action.viewData -U` | 上层仍默认仅允许 HTTP/HTTPS |
 | 批量执行 | 复用 `mobile_batch_commands` | 使用元素引用的步骤之间需要重新读取元素，或使用已知坐标 |
 
-暂不支持：自定义时长长按、设置屏幕方向、剪贴板工具、定位覆盖和折叠。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
+暂不支持：自定义时长长按、剪贴板工具和定位覆盖。对应工具返回不支持，不会转交给 Android/iOS 后端。云端设备仍仅支持原项目的 iOS/Android 范围。
 
 每次操作后会清除鸿蒙元素引用；按引用操作前还会重新读取布局。如果布局与引用来自的快照不同，会要求重新读取元素。界面持续变化时，可读取新快照后根据坐标操作；操作与布局校验之间仍可能发生变化。stdio 连接和 HTTP 请求均保留设备引用上下文；共享设备的客户端仍需协调操作，同一设备没有并发操作隔离。
 
@@ -88,11 +88,11 @@ npm run build
 | `mobile_save_screenshot` | 已实现：保存实际 PNG/JPEG，格式与扩展名不匹配时报错 |
 | `mobile_batch_commands` | 已实现：复用统一工具回调 |
 | `mobile_get_foreground_app` | 已实现：默认显示屏焦点窗口 ID 与 UI 树包名、Ability 对应，焦点变化或对应不唯一时报错 |
-| `mobile_set_orientation` | 待适配，明确返回不支持 |
+| `mobile_set_orientation` | 已实现：开发者模式显示服务方向注入，并通过屏幕宽高确认结果；不修改旋转锁定 |
 | `mobile_clipboard` | 待适配，明确返回不支持；不等同于 UITest 内部输入机制 |
 | `mobile_get_device_logs` | 已实现：HiLog 缓冲区及实时流，NDJSON，筛选及 30 秒固定期限 |
 | `mobile_set_location` | 待适配，明确返回不支持 |
-| `mobile_fold_device` | 未实现；还受设备是否有折叠硬件限制 |
+| `mobile_fold_device` | 已实现：支持设备上的 named posture 状态模拟并核对返回值；不支持任意铰链角度，非折叠设备不能提供该能力 |
 | `mobile_start_screen_recording` / `mobile_stop_screen_recording` | 原生组件及 MCP 协议已实现、模拟验证通过；需 HARMONY_RECORDER_PATH，SDK 链接和真机授权仍待验证 |
 | `mobile_list_crashes` / `mobile_get_crash` | 已实现：系统故障日志目录中的 C++、JS、Rust、仓颉报告；要求设备授权读取目录 |
 | `mobile_login_to_cloud_provider` / `mobile_list_remote_devices` / `mobile_allocate_remote_device` / `mobile_release_remote_device` | 保留原云提供商接口，不提供鸿蒙云设备 |
@@ -162,3 +162,11 @@ npm run build
 录制或传输失败时，工具报告错误及设备端恢复路径，保留已有目标文件；本地已拉取的异常或未成功移动的文件也可能保留供排查。重启服务后的会话恢复尚未实现。商业设备是否允许从 HDC 执行该原生组件、是否需要签名应用承载，仍需 SDK 和第二阶段手机验证。
 
 接口依据：[AVScreenCapture C API](https://github.com/openharmony/multimedia_player_framework/blob/9f9a285ff489afa66861a85dcc4213336a463b36/interfaces/kits/c/native_avscreen_capture.h)、[配置及状态定义](https://github.com/openharmony/multimedia_player_framework/blob/9f9a285ff489afa66861a85dcc4213336a463b36/interfaces/kits/c/native_avscreen_capture_base.h)。
+
+## 方向与折叠状态
+
+方向设置首先检查当前方向；如果已经满足目标，不发送修改命令。需要改变方向时，确认开发者模式和显示管理服务公布的 `-motion` 接口，再注入竖屏/横屏方向，并最多读取屏幕结果四次确认。若自动旋转被锁定、应用强制指定方向、接口权限不足或系统没有响应，会返回错误，不把命令已执行当作方向已改变。不会主动切换旋转锁定设置。
+
+折叠工具使用显示服务的 `-p`、`-z`、`-y` 分别请求 folded、half-open、open，并要求服务返回匹配的 `currentFoldStatus`。这是系统状态模拟，不会机械地折叠手机；Mate 60 Pro 这类非折叠机型不能提供折叠硬件能力，实际调用应按设备结果报错。任意数值铰链角度不作近似处理，会明确拒绝。
+
+模拟测试覆盖接口检查、状态确认、锁定或未响应、错误状态以及 MCP 调用。商业系统版本仍需第二阶段验证。接口依据：[显示服务的开发者命令与状态输出](https://github.com/openharmony/window_window_manager/blob/8b0d8fe1b973d865904c942c286b3d2a3b9b08e7/window_scene/screen_session_manager/src/screen_session_dumper.cpp)、[FoldStatus 定义](https://github.com/openharmony/window_window_manager/blob/8b0d8fe1b973d865904c942c286b3d2a3b9b08e7/interfaces/innerkits/dm/dm_common.h#L492)。

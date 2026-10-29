@@ -9,7 +9,7 @@ import { getJpegDimensions } from "./jpeg";
 import { collectHarmonyLogs } from "./harmony-logs";
 import { HarmonyCrashes, HarmonyCrash } from "./harmony-crashes";
 import { HarmonyRecording, RecordingResult } from "./harmony-recording";
-import { ActionableError, Button, ForegroundApp, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
+import { ActionableError, Button, FoldPosture, ForegroundApp, InstalledApp, Orientation, Robot, ScreenElement, ScreenElementRect, ScreenSize, ScreenshotOptions, SwipeDirection } from "./robot";
 
 export const HARMONY_DEVICE_PREFIX = "harmony:";
 export const isHarmonyDevice = (id: string): boolean => id.startsWith(HARMONY_DEVICE_PREFIX);
@@ -412,7 +412,53 @@ export class HarmonyRobot implements Robot {
 	}
 
 	public async setOrientation(orientation: Orientation): Promise<void> {
-		throw new ActionableError("Setting orientation is not supported by the HarmonyOS HDC backend");
+		if (await this.getOrientation() === orientation) {
+			return;
+		}
+
+		this.ensureDisplayCommand("-motion");
+		this.invalidateRefs();
+		this.hdc.shellChecked(this.target, ["hidumper", "-s", "DisplayManagerService", "-a", orientation === "portrait" ? "-motion,0" : "-motion,1"]);
+		for (let attempt = 0; attempt < 4; attempt++) {
+			await new Promise(resolve => setTimeout(resolve, 150));
+			if (await this.getOrientation() === orientation) {
+				return;
+			}
+		}
+
+		throw new ActionableError("HarmonyOS did not reach the requested orientation. Check auto-rotation, app orientation restrictions and display-service permissions");
+	}
+
+	public async fold(posture: FoldPosture | number): Promise<void> {
+		if (typeof posture === "number") {
+			throw new ActionableError("HarmonyOS supports named fold postures; exact hinge-angle injection is not available");
+		}
+
+		const commands = { "folded": { command: "-p", status: "2" }, "half-open": { command: "-z", status: "3" }, "open": { command: "-y", status: "1" } };
+		const target = commands[posture];
+		if (!target) {
+			throw new ActionableError("Invalid HarmonyOS fold posture");
+		}
+
+		this.ensureDisplayCommand(target.command);
+		this.invalidateRefs();
+		const result = this.hdc.shellChecked(this.target, ["hidumper", "-s", "DisplayManagerService", "-a", target.command]);
+		const statuses = [...result.matchAll(/^\s*currentFoldStatus is:\s*(\d+)\s*$/gm)];
+		if (statuses.length !== 1 || statuses[0][1] !== target.status) {
+			throw new ActionableError("HarmonyOS did not confirm the requested fold posture. The device must support fold-state simulation; a non-foldable phone cannot provide this capability");
+		}
+	}
+
+	private ensureDisplayCommand(command: string): void {
+		const developerMode = this.hdc.shellChecked(this.target, ["param", "get", "const.security.developermode.state"]).trim();
+		if (developerMode !== "true" && developerMode !== "1") {
+			throw new ActionableError("HarmonyOS display control requires developer mode. Enable it on the device before retrying");
+		}
+
+		const help = this.hdc.shellChecked(this.target, ["hidumper", "-s", "DisplayManagerService", "-a", "-h"]);
+		if (!new RegExp(`^\\s*${command}(?:\\s|,)`, "m").test(help)) {
+			throw new ActionableError(`This HarmonyOS display service does not advertise ${command}; check device version and permissions`);
+		}
 	}
 
 	public async swipe(direction: SwipeDirection): Promise<void> {

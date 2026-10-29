@@ -98,7 +98,8 @@ npx @mobilenext/mobile-mcp@latest install
 - **`mobile_disconnect_harmony_device`** - 断开指定的一台网络设备
 - **`mobile_get_screen_size`** - 获取移动设备的屏幕尺寸（像素）
 - **`mobile_get_orientation`** - 获取设备当前的屏幕方向
-- **`mobile_set_orientation`** - 更改屏幕方向（竖屏/横屏）
+- **`mobile_set_orientation`** - 更改屏幕方向（竖屏/横屏）；鸿蒙要求开发者模式及显示服务支持，并确认方向实际变化
+- **`mobile_fold_device`** - 折叠状态控制；鸿蒙在支持的设备上模拟指定状态并确认结果，不会机械地折叠手机
 - **`mobile_set_location`** - 覆盖设备上报的 GPS 位置，或清除该覆盖
 - **`mobile_clipboard`** - 读取或替换设备剪贴板内容
 
