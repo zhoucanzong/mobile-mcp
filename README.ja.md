@@ -8,6 +8,8 @@
 
 > **このブランチの HarmonyOS / OpenHarmony 対応：**[セットアップ手順](docs/harmonyos.md)に従って本リポジトリをビルドしてください。下記の上流 npm インストールにはこの対応は含まれません。実機検証は未実施です。ネイティブ録画にはデバイス SDK でビルドしたヘルパーが必要です。模擬位置情報にはシステム認可されたプラットフォームコンポーネントが必要です。制限は対応表に記載しています。
 
+第1段階のソース対応とシミュレーション検証は完了しました。[検証記録](docs/harmonyos-phase1-verification.md)を参照してください。実機動作と実験的なシステム位置情報機能の認可は次の段階で確認します。
+
 **Claude Code、Codex、Gemini、GitHub Copilot、Antigravity に対応** — その他 MCP 互換クライアントでも動作します。
 
 自分のマシン上のデバイスに対して実行することも、**[Mobile Next Cloud](https://mobilenext.ai/cloud?utm_source=github&utm_medium=readme&utm_campaign=mobile-mcp&utm_content=intro)** 上の実際の iOS / Android 実機に対して実行することもできます。同じツール群を、ローカルセットアップなしで利用できます。

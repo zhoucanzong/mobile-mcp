@@ -8,6 +8,8 @@ This server allows Agents and LLMs to interact with native iOS, Android, and Har
 
 > **HarmonyOS / OpenHarmony on this branch:** build and run this repository locally using the [setup guide](docs/harmonyos.md). The upstream npm quick-install commands below do not include this adapter. Hardware validation is pending. Native recording requires a device-SDK-built helper; mock location requires a system-authorized platform component. Platform limits are listed in the capability matrix.
 
+Phase-one source adaptation and simulation acceptance is complete. See the [verification record](docs/harmonyos-phase1-verification.md); device execution and the experimental system-level location authorization remain for the next stage.
+
 **Works with Claude Code, Codex, Gemini, GitHub Copilot, Antigravity** — or any MCP-compatible client.
 
 Run it against devices on your own machine, or against real iOS and Android devices in the cloud with **[Mobile Next Cloud](https://mobilenext.ai/cloud?utm_source=github&utm_medium=readme&utm_campaign=mobile-mcp&utm_content=intro)** — same tools, no local setup.

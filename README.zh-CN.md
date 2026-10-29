@@ -8,6 +8,8 @@
 
 > **本分支的鸿蒙 / OpenHarmony 支持：**请按[接入说明](docs/harmonyos.md)构建并运行本仓库。下方上游 npm 快速安装命令不包含本分支适配。当前功能仍待真机验证；原生录屏需要 SDK 构建的设备组件，定位覆盖需要获得系统授权的平台组件；平台限制见功能对照。
 
+第一阶段代码适配和模拟验收已完成，详见[验证记录](docs/harmonyos-phase1-verification.md)。真实手机运行及实验性系统级定位的部署授权留到下一阶段验证。
+
 **支持 Claude Code、Codex、Gemini、GitHub Copilot、Antigravity** —— 以及任何兼容 MCP 的客户端。
 
 你可以在自己机器上的设备运行它，也可以通过 **[Mobile Next Cloud](https://mobilenext.ai/cloud?utm_source=github&utm_medium=readme&utm_campaign=mobile-mcp&utm_content=intro)** 在云端真实 iOS 和 Android 设备上运行 —— 工具完全相同，无需本地环境配置。
