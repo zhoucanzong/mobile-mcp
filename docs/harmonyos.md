@@ -153,8 +153,8 @@ npm run build
 
 ## 录屏适配进度
 
-录屏尚未接入。已核对原生 AVScreenCapture 文件录制接口：创建实例，注册状态与错误回调，配置 `OH_CAPTURE_FILE`、视频编码和 MP4 输出，再调用 `OH_AVScreenCapture_StartScreenRecording`；停止使用 `OH_AVScreenCapture_StopScreenRecording`，随后释放实例并确认文件收尾。工具只有在收到 STARTED 状态后才能报告开始成功，取消授权和错误回调必须返回失败。
+录屏尚未接入 MCP。[设备端原生组件](../native/harmony-recorder/README.md)已实现 AVScreenCapture 初始化、授权状态处理、限时/手动停止和文件收尾；9 个主机模拟状态场景已通过，并加入分支 CI。设备端二进制的 SDK 链接验证仍未完成。
 
-后续实现需要设备端原生执行组件、SDK 构建与部署路径、停止/限时控制、HDC 文件回收以及主机端协议测试。不能仅将通用 `screenrecord` 命令假定为所有鸿蒙系统自带能力，也不能将一组截图作为原生录屏成功证据。商业设备执行权限和授权流程仍需第二阶段确认。
+后续还需要实际 SDK 构建与部署验证、MCP 停止/限时控制接入、HDC 文件回收以及主机端协议测试。工具必须在系统 STARTED 回调后才能报告开始成功，取消授权和错误必须显式返回。商业设备执行权限及授权流程需第二阶段确认。
 
 接口依据：[AVScreenCapture C API](https://github.com/openharmony/multimedia_player_framework/blob/9f9a285ff489afa66861a85dcc4213336a463b36/interfaces/kits/c/native_avscreen_capture.h)、[配置及状态定义](https://github.com/openharmony/multimedia_player_framework/blob/9f9a285ff489afa66861a85dcc4213336a463b36/interfaces/kits/c/native_avscreen_capture_base.h)。

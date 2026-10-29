@@ -28,3 +28,8 @@ jobs:
         env:
           MOBILEMCP_DISABLE_TELEMETRY: '1'
         run: npm test -- --reporter=dot
+      - name: Native recorder lifecycle tests
+        run: |
+          cmake -S native/harmony-recorder -B /tmp/mobile-mcp-recorder-tests -DMOBILE_MCP_HOST_TESTS=ON
+          cmake --build /tmp/mobile-mcp-recorder-tests
+          ctest --test-dir /tmp/mobile-mcp-recorder-tests --output-on-failure
