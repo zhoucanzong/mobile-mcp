@@ -528,3 +528,48 @@ test("executes an explicit-duration long press by element ref and expires that r
 		expect(stale.content[0].text).toContain("stale");
 	});
 });
+
+test("manages HarmonyOS application lifecycle through MCP", async () => {
+	const installed = new Set(["com.example.notes", "com.example.calendar"]);
+	let foreground = "";
+	const original = Hdc.prototype.shell;
+	Hdc.prototype.shell = function(target, args) {
+		if (args[0] === "bm" && args[1] === "dump") {
+			return "Bundle list:\n" + [...installed].join("\n");
+		}
+
+		if (args[0] === "aa" && args[1] === "start") {
+			if (!installed.has(args[3]) || args[5] !== "EntryAbility") { throw new Error("ability unavailable"); }
+			foreground = args[3];
+			return "start ability successfully.";
+		}
+
+		if (args[0] === "aa" && args[1] === "force-stop") {
+			if (foreground === args[2]) { foreground = ""; }
+			return "force stop process successfully.";
+		}
+
+		if (args[0] === "bm" && args[1] === "uninstall") {
+			installed.delete(args[3]);
+			return "uninstall bundle successfully.";
+		}
+
+		return original.call(this, target, args);
+	};
+	await withClient(async client => {
+		const call = async (name: string, args: Record<string, unknown> = {}) => {
+			const result: any = await client.callTool({ name, arguments: { device: "harmony:MATE60", ...args } });
+			expect(result.isError, name).not.toBe(true);
+			return result.content[0].text as string;
+		};
+		expect(await call("mobile_list_apps")).toContain("com.example.notes");
+		await call("mobile_launch_app", { packageName: "com.example.notes/EntryAbility" });
+		expect(foreground).toBe("com.example.notes");
+		await call("mobile_terminate_app", { packageName: "com.example.notes" });
+		expect(foreground).toBe("");
+		await call("mobile_uninstall_app", { packageName: "com.example.notes" });
+		const remaining = await call("mobile_list_apps");
+		expect(remaining).not.toContain("com.example.notes");
+		expect(remaining).toContain("com.example.calendar");
+	});
+});

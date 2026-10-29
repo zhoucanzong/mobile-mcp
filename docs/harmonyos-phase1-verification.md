@@ -4,7 +4,7 @@
 
 ## 已核对的证据
 
-- 最新实现提交 `4054c7d5c642cd526525d9fb8cfcd97938e09587` 的[远端 CI](https://github.com/zhoucanzong/mobile-mcp/actions/runs/40915715034)已成功，逐步核对了构建、检查、单元/协议测试与两组原生状态测试的成功结论。本地测试结果为 248 项通过。
+- 实现提交 `4054c7d5c642cd526525d9fb8cfcd97938e09587` 的[远端 CI](https://github.com/zhoucanzong/mobile-mcp/actions/runs/40915715034)已成功，逐步核对了构建、检查、单元/协议测试与两组原生状态测试的成功结论。补充应用管理完整成功路径后，本地测试结果为 249 项通过。
 - `test/server-harmony.test.ts` 验证 MCP 调用、平台路由、跨请求的元素引用、录屏及定位会话。
 - `test/harmony*.test.ts` 与 `test/hdc.test.ts` 覆盖界面解析、中文文本、命令转义、临时文件、截图格式、状态确认、失败传播、会话清理与恢复。
 - 原生录屏和定位各有 9 个主机模拟状态场景，使用实际 C++ 编译器构建并运行。它们不调用手机系统服务。
@@ -55,7 +55,7 @@ fe6325d6910904f2b84f92349fe2d46fb90f84d51c8da8d33cd5f6ce6e3375ae
 | MCP 与设备适配源码 | `src/harmony*.ts`、HDC 执行层、MCP 路由及两组原生组件源码 | 已交付 |
 | 中文与失败边界 | Unicode、转义、尾部换行、空值、权限错误、损坏输出、会话清理及恢复测试 | 已验证模拟路径 |
 | 构建与检查 | 最新实现提交的 CI Build / Lint 步骤成功 | 通过 |
-| 模拟验证 | 本地 248 项测试通过；远端 Unit and protocol tests、两组 Native lifecycle tests 步骤成功 | 通过 |
+| 模拟验证 | 本地 249 项测试通过；远端 Unit and protocol tests、两组 Native lifecycle tests 步骤成功 | 通过 |
 | 录屏交叉编译 | API 23 SDK 生成 AArch64 ELF；源码和二进制哈希重新核对一致 | 通过 |
 | 文档 | 中、英、日 README、逐工具功能对照、组件说明、平台限制和本记录 | 已同步 |
 | 交付 | `zhoucanzong/mobile-mcp` 的 `OpenHarmony` 分支；最终文档提交后另行核对远端 HEAD | 分支交付 |
